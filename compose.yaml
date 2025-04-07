@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+
+  redis:
+    image: redis:7.0
+    networks:
+      - app-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
+  auth-api:
+    build:
+      context: ./auth-api
+      dockerfile: Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "8000:8000"
+    environment:
+      - JWT_SECRET=PRFT
+      - AUTH_API_PORT=8000
+      - USERS_API_ADDRESS=http://users-api:8083
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_API_ADDRESS=http://auth-api:8000
+      - TODOS_API_ADDRESS=http://todos-api:8082
+
+  log-message-processor:
+    build:
+      context: ./log-message-processor
+      dockerfile: Dockerfile
+    networks:
+      - app-network
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+
+  todos-api:
+    build:
+      context: ./todos-api
+      dockerfile: Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "8082:8082"
+    environment:
+      - JWT_SECRET=PRFT
+      - TODO_API_PORT=8082
+      - REDIS_HOST=localhost
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+
+  users-api:
+    build:
+      context: ./users-api
+      dockerfile: Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "8083:8083"
+    environment:
+      - JWT_SECRET=PRFT
+      - SERVER_PORT=8083
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis-data:

@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+
+  log-message-processor:
+    build:
+      context: ./log-message-processor
+      dockerfile: Dockerfile
+    networks:
+      - app-network
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+
+networks:
+  app-network:
+    driver: bridge

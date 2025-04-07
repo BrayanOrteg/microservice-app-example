@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  auth-api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "8000:8000"
+    environment:
+      - JWT_SECRET=PRFT
+      - AUTH_API_PORT=8000
+      - USERS_API_ADDRESS=http://users-api:8083
+
+networks:
+  app-network:
+    driver: bridge
+  
