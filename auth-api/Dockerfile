@@ -2,7 +2,7 @@ FROM golang:1.18 AS builder
 WORKDIR /app
 COPY . .
 RUN export GO111MODULE=on
-RUN go mod init github.com/AndresCamiloRR/microservice-app-example/tree/master/auth-api
+RUN go mod init github.com/BrayanOrteg/microservice-app-example/tree/master/auth-api
 RUN go mod tidy
 RUN go build
 

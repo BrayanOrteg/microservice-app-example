@@ -6,6 +6,13 @@ import requests
 from py_zipkin.zipkin import zipkin_span, ZipkinAttrs, generate_random_64bit_string
 import time
 import random
+import sys
+
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
+sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 1)
+
+print('Starting log-message-processor...')
+print('Redis host: {}'.format(os.environ['REDIS_HOST']))
 
 def log_message(message):
     time_delay = random.randrange(0, 2000)
