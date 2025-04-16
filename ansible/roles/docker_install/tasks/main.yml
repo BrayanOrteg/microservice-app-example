@@ -1,0 +1,56 @@
+- name: Instalar dependencias de Docker
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+    state: present
+    update_cache: yes
+
+- name: Agregar la clave GPG oficial de Docker
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Agregar el repositorio de Docker
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable
+    state: present
+
+- name: Instalar Docker CE
+  apt:
+    name: docker-ce
+    state: present
+    update_cache: yes
+
+- name: Instalar Git
+  apt:
+    name: git
+    state: present
+
+- name: Descargar Docker Compose
+  get_url:
+    url: https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-linux-x86_64
+    dest: /usr/local/bin/docker-compose
+    mode: '0755'
+
+- name: Verificar instalación de Docker Compose
+  command: docker-compose --version
+  register: compose_version_output
+
+- name: Mostrar versión de Docker Compose
+  debug:
+    var: compose_version_output.stdout
+
+- name: Clonar el repositorio de la aplicación
+  git:
+    repo: https://github.com/BrayanOrteg/microservice-app-example.git
+    dest: /opt/microservice-app-example
+    version: ops
+    force: yes
+
+- name: Levantar contenedores con Docker Compose
+  command: docker compose up -d
+  args:
+    chdir: /opt/microservice-app-example
