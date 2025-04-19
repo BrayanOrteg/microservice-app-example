@@ -59,26 +59,31 @@ func main() {
 	}
 
 	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
+    e.Use(middleware.Recover())
+    e.Use(middleware.CORS())
 
-	// Route => handler
-	e.GET("/version", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Auth API, written in Go\n")
-	})
+    // Route => handler
+    e.GET("/version", func(c echo.Context) error {
+        return c.String(http.StatusOK, "Auth API, written in Go\n")
+    })
 
-	// Add this to your routes
-	e.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{
-			"status": "UP",
-			"version": "1.0.0"
-		})
-	})
+    // Add health check endpoint for Prometheus
+    e.GET("/health", func(c echo.Context) error {
+        // Set the content type explicitly to text/plain
+        c.Response().Header().Set(echo.HeaderContentType, "text/plain; charset=UTF-8")
+        return c.String(http.StatusOK, "OK")
+    })
 
-	e.POST("/login", getLoginHandler(userService))
+    // Add metrics endpoint if you want to expose Prometheus metrics
+    e.GET("/metrics", func(c echo.Context) error {
+        c.Response().Header().Set(echo.HeaderContentType, "text/plain; charset=UTF-8")
+        return c.String(http.StatusOK, "# HELP example_metric Example metric\n# TYPE example_metric gauge\nexample_metric 1")
+    })
 
-	// Start server
-	e.Logger.Fatal(e.Start(hostport))
+    e.POST("/login", getLoginHandler(userService))
+
+    // Start server
+    e.Logger.Fatal(e.Start(hostport))
 }
 
 type LoginRequest struct {

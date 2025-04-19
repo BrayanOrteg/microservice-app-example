@@ -45,6 +45,8 @@ services:
       - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
 
   log-message-processor:
+    depends_on:
+      - redis
     build:
       context: ./log-message-processor
       dockerfile: Dockerfile
@@ -58,6 +60,8 @@ services:
       - DATABASE_URL=postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1-pooler.us-east-1.aws.neon.tech/todo?sslmode=require
 
   todos-api:
+    depends_on:
+      - redis
     build:
       context: ./todos-api
       dockerfile: Dockerfile
