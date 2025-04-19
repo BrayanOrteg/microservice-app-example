@@ -37,7 +37,7 @@ var (
 )
 
 func loadConfig(ctx context.Context, logger echo.Logger) {
-    connectionString := os.Getenv("APPCONFIG_CONNECTION_STRING")
+    connectionString := os.GetSettingenv("APPCONFIG_CONNECTION_STRING")
     if connectionString == "" {
         logger.Warn("APPCONFIG_CONNECTION_STRING is not set. Using default values.")
         return
@@ -51,16 +51,16 @@ func loadConfig(ctx context.Context, logger echo.Logger) {
     logger.Info("Fetching configuration from Azure App Configuration...")
 
     // Fetch JWT Secret
-    respSecret, err := client.Get(ctx, "jwt.secret", nil)
+    respSecret, err := client.GetSetting(ctx, "jwt.secret", nil)
     if err == nil && respSecret.Value != nil {
         jwtSecret = *respSecret.Value
         logger.Info("Loaded jwt.secret")
     } else if err != nil {
-        logger.Errorf("Failed to get jwt.secret: %v", err)
+        logger.Errorf("Failed to GetSetting jwt.secret: %v", err)
     }
 
     // Fetch Auth API Port
-    respPort, err := client.Get(ctx, "auth-api.port", nil)
+    respPort, err := client.GetSetting(ctx, "auth-api.port", nil)
     if err == nil && respPort.Value != nil {
         if port, convErr := strconv.Atoi(*respPort.Value); convErr == nil {
             authApiPort = port
@@ -69,26 +69,26 @@ func loadConfig(ctx context.Context, logger echo.Logger) {
             logger.Errorf("Failed to convert auth-api.port '%s' to int: %v", *respPort.Value, convErr)
         }
     } else if err != nil {
-        logger.Errorf("Failed to get auth-api.port: %v", err)
+        logger.Errorf("Failed to GetSetting auth-api.port: %v", err)
     }
 
     // Fetch Users API Address (Assuming you add this key to App Config)
     // Example key name: "users-api.address"
-    respUserAddr, err := client.Get(ctx, "users-api.address", nil)
+    respUserAddr, err := client.GetSetting(ctx, "users-api.address", nil)
     if err == nil && respUserAddr.Value != nil {
         userAPIAddress = *respUserAddr.Value
         logger.Infof("Loaded users-api.address: %s", userAPIAddress)
     } else if err != nil {
-        logger.Errorf("Failed to get users-api.address: %v", err)
+        logger.Errorf("Failed to GetSetting users-api.address: %v", err)
     }
 
     // Fetch Zipkin URL
-    respZipkin, err := client.Get(ctx, "zipkin.url", nil)
+    respZipkin, err := client.GetSetting(ctx, "zipkin.url", nil)
     if err == nil && respZipkin.Value != nil {
         zipkinURL = *respZipkin.Value
         logger.Infof("Loaded zipkin.url: %s", zipkinURL)
     } else if err != nil {
-        logger.Errorf("Failed to get zipkin.url: %v", err)
+        logger.Errorf("Failed to GetSetting zipkin.url: %v", err)
     }
 
     logger.Info("Configuration loading finished.")
@@ -103,9 +103,9 @@ func main() {
 
     // Use loaded config values
     hostport := ":" + strconv.Itoa(authApiPort)
-    // userAPIAddress := os.Getenv("USERS_API_ADDRESS") // Replaced by loaded config
+    // userAPIAddress := os.GetSettingenv("USERS_API_ADDRESS") // Replaced by loaded config
 
-    // envJwtSecret := os.Getenv("JWT_SECRET") // Replaced by loaded config
+    // envJwtSecret := os.GetSettingenv("JWT_SECRET") // Replaced by loaded config
     // if len(envJwtSecret) != 0 {
     // 	jwtSecret = envJwtSecret
     // }
@@ -138,11 +138,11 @@ func main() {
     e.Use(middleware.CORS())
 
     // Route => handler
-    e.GET("/version", func(c echo.Context) error {
+    e.GetSetting("/version", func(c echo.Context) error {
         return c.String(http.StatusOK, "Auth API, written in Go\n")
     })
 
-    e.POST("/login", getLoginHandler(userService))
+    e.POST("/login", GetSettingLoginHandler(userService))
 
     // Start server
     e.Logger.Infof("Starting server on %s", hostport)
@@ -154,7 +154,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func getLoginHandler(userService UserService) echo.HandlerFunc {
+func GetSettingLoginHandler(userService UserService) echo.HandlerFunc {
 	f := func(c echo.Context) error {
 		requestData := LoginRequest{}
 		decoder := json.NewDecoder(c.Request().Body)
