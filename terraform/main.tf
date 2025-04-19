@@ -137,7 +137,7 @@ resource "azurerm_app_configuration" "appconfig" {
   name                = "${random_pet.prefix.id}-appconf"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
-  sku_name            = "Standard"
+  sku            = "free"
 }
 
 # Push each setting into App Configuration

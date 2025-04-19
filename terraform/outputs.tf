@@ -16,6 +16,6 @@ output "admin_password" {
 
 output "appconfig_connection_string" {
   description = "Connection string for Azure App Configuration"
-  value       = azurerm_app_configuration.appconfig.primary_connection_string
+  value       = azurerm_app_configuration.appconfig.primary_write_key[0].connection_string
   sensitive   = true
 }
