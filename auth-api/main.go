@@ -67,6 +67,14 @@ func main() {
 		return c.String(http.StatusOK, "Auth API, written in Go\n")
 	})
 
+	// Add this to your routes
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{
+			"status": "UP",
+			"version": "1.0.0"
+		})
+	})
+
 	e.POST("/login", getLoginHandler(userService))
 
 	// Start server
