@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/data/azappconfig" // Import SDK
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -20,57 +21,130 @@ var (
 	// ErrWrongCredentials indicates that login attempt failed because of incorrect login or password
 	ErrWrongCredentials = echo.NewHTTPError(http.StatusUnauthorized, "username or password is invalid")
 
-	jwtSecret = "myfancysecret"
+	// Default values
+    defaultJwtSecret     = "myfancysecret"
+    defaultAuthApiPort   = 8000
+    defaultUserApiAddr   = "" // Or a sensible default like "http://users-api:8083" if running in Docker network
+    defaultZipkinUrl     = ""
+
+    // Variables to hold loaded config
+    jwtSecret     = defaultJwtSecret
+    authApiPort   = defaultAuthApiPort
+    userAPIAddress = defaultUserApiAddr
+    zipkinURL     = defaultZipkinUrl
 )
 
+func loadConfig(ctx context.Context, logger echo.Logger) {
+    connectionString := os.Getenv("APPCONFIG_CONNECTION_STRING")
+    if connectionString == "" {
+        logger.Warn("APPCONFIG_CONNECTION_STRING is not set. Using default values.")
+        return
+    }
+
+    client, err := azappconfig.NewClientFromConnectionString(connectionString, nil)
+    if err != nil {
+        logger.Errorf("Failed to create App Configuration client: %v. Using default values.", err)
+        return
+    }
+    logger.Info("Fetching configuration from Azure App Configuration...")
+
+    // Fetch JWT Secret
+    respSecret, err := client.GetConfigurationSetting(ctx, "jwt.secret", nil)
+    if err == nil && respSecret.Value != nil {
+        jwtSecret = *respSecret.Value
+        logger.Info("Loaded jwt.secret")
+    } else if err != nil {
+        logger.Errorf("Failed to get jwt.secret: %v", err)
+    }
+
+    // Fetch Auth API Port
+    respPort, err := client.GetConfigurationSetting(ctx, "auth-api.port", nil)
+    if err == nil && respPort.Value != nil {
+        if port, convErr := strconv.Atoi(*respPort.Value); convErr == nil {
+            authApiPort = port
+            logger.Infof("Loaded auth-api.port: %d", authApiPort)
+        } else {
+            logger.Errorf("Failed to convert auth-api.port '%s' to int: %v", *respPort.Value, convErr)
+        }
+    } else if err != nil {
+        logger.Errorf("Failed to get auth-api.port: %v", err)
+    }
+
+    // Fetch Users API Address (Assuming you add this key to App Config)
+    // Example key name: "users-api.address"
+    respUserAddr, err := client.GetConfigurationSetting(ctx, "users-api.address", nil)
+    if err == nil && respUserAddr.Value != nil {
+        userAPIAddress = *respUserAddr.Value
+        logger.Infof("Loaded users-api.address: %s", userAPIAddress)
+    } else if err != nil {
+        logger.Errorf("Failed to get users-api.address: %v", err)
+    }
+
+    // Fetch Zipkin URL
+    respZipkin, err := client.GetConfigurationSetting(ctx, "zipkin.url", nil)
+    if err == nil && respZipkin.Value != nil {
+        zipkinURL = *respZipkin.Value
+        logger.Infof("Loaded zipkin.url: %s", zipkinURL)
+    } else if err != nil {
+        logger.Errorf("Failed to get zipkin.url: %v", err)
+    }
+
+    logger.Info("Configuration loading finished.")
+}
+
 func main() {
-	hostport := ":" + os.Getenv("AUTH_API_PORT")
-	userAPIAddress := os.Getenv("USERS_API_ADDRESS")
+    e := echo.New()
+    e.Logger.SetLevel(gommonlog.INFO)
 
-	envJwtSecret := os.Getenv("JWT_SECRET")
-	if len(envJwtSecret) != 0 {
-		jwtSecret = envJwtSecret
-	}
+    // Load configuration before initializing components
+    loadConfig(context.Background(), e.Logger) // Use Background context for startup config
 
-	userService := UserService{
-		Client:         http.DefaultClient,
-		UserAPIAddress: userAPIAddress,
-		AllowedUserHashes: map[string]interface{}{
-			"admin_admin": nil,
-			"johnd_foo":   nil,
-			"janed_ddd":   nil,
-		},
-	}
+    // Use loaded config values
+    hostport := ":" + strconv.Itoa(authApiPort)
+    // userAPIAddress := os.Getenv("USERS_API_ADDRESS") // Replaced by loaded config
 
-	e := echo.New()
-	e.Logger.SetLevel(gommonlog.INFO)
+    // envJwtSecret := os.Getenv("JWT_SECRET") // Replaced by loaded config
+    // if len(envJwtSecret) != 0 {
+    // 	jwtSecret = envJwtSecret
+    // }
 
-	if zipkinURL := os.Getenv("ZIPKIN_URL"); len(zipkinURL) != 0 {
-		e.Logger.Infof("init tracing to Zipkit at %s", zipkinURL)
+    userService := UserService{
+        Client:         http.DefaultClient, // Default client initially
+        UserAPIAddress: userAPIAddress,     // Use loaded value
+        AllowedUserHashes: map[string]interface{}{
+            "admin_admin": nil,
+            "johnd_foo":   nil,
+            "janed_ddd":   nil,
+        },
+    }
 
-		if tracedMiddleware, tracedClient, err := initTracing(zipkinURL); err == nil {
-			e.Use(echo.WrapMiddleware(tracedMiddleware))
-			userService.Client = tracedClient
-		} else {
-			e.Logger.Infof("Zipkin tracer init failed: %s", err.Error())
-		}
-	} else {
-		e.Logger.Infof("Zipkin URL was not provided, tracing is not initialised")
-	}
+    // Initialize tracing using loaded zipkinURL
+    if zipkinURL != "" {
+        e.Logger.Infof("init tracing to Zipkin at %s", zipkinURL)
+        if tracedMiddleware, tracedClient, err := initTracing(zipkinURL); err == nil {
+            e.Use(echo.WrapMiddleware(tracedMiddleware))
+            userService.Client = tracedClient // Use traced client if tracing is enabled
+        } else {
+            e.Logger.Errorf("Zipkin tracer init failed: %s", err.Error())
+        }
+    } else {
+        e.Logger.Info("Zipkin URL was not provided or loaded, tracing is not initialised")
+    }
 
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
+    e.Use(middleware.Logger())
+    e.Use(middleware.Recover())
+    e.Use(middleware.CORS())
 
-	// Route => handler
-	e.GET("/version", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Auth API, written in Go\n")
-	})
+    // Route => handler
+    e.GET("/version", func(c echo.Context) error {
+        return c.String(http.StatusOK, "Auth API, written in Go\n")
+    })
 
-	e.POST("/login", getLoginHandler(userService))
+    e.POST("/login", getLoginHandler(userService))
 
-	// Start server
-	e.Logger.Fatal(e.Start(hostport))
+    // Start server
+    e.Logger.Infof("Starting server on %s", hostport)
+    e.Logger.Fatal(e.Start(hostport))
 }
 
 type LoginRequest struct {

@@ -4,15 +4,55 @@ import os
 import json
 import requests
 from py_zipkin.zipkin import zipkin_span, ZipkinAttrs, generate_random_64bit_string
-import time
 import random
 import sys
+from azure.appconfiguration import AzureAppConfigurationClient # Import SDK
 
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
-sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 1)
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1) # Use buffering=1 for line buffering
+sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
 
 print('Starting log-message-processor...')
-print('Redis host: {}'.format(os.environ['REDIS_HOST']))
+
+# --- App Configuration Setup ---
+connection_string = os.environ.get("APPCONFIG_CONNECTION_STRING")
+app_config_client = None
+redis_host = 'localhost' # Default
+redis_port = 6379      # Default
+redis_channel = 'log_channel' # Default
+zipkin_url = '' # Default
+
+if connection_string:
+    try:
+        print("Connecting to Azure App Configuration...")
+        app_config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+        print("Fetching configuration...")
+
+        redis_host_setting = app_config_client.get_configuration_setting(key="redis.host")
+        if redis_host_setting and redis_host_setting.value:
+            redis_host = redis_host_setting.value
+
+        redis_port_setting = app_config_client.get_configuration_setting(key="redis.port")
+        if redis_port_setting and redis_port_setting.value:
+            redis_port = int(redis_port_setting.value)
+
+        redis_channel_setting = app_config_client.get_configuration_setting(key="redis.channel")
+        if redis_channel_setting and redis_channel_setting.value:
+            redis_channel = redis_channel_setting.value
+
+        zipkin_url_setting = app_config_client.get_configuration_setting(key="zipkin.url")
+        if zipkin_url_setting and zipkin_url_setting.value:
+            zipkin_url = zipkin_url_setting.value
+
+        print("Configuration loaded successfully.")
+        print(f"Using Redis: {redis_host}:{redis_port}, Channel: {redis_channel}")
+        print(f"Using Zipkin: {zipkin_url if zipkin_url else 'Not Configured'}")
+
+    except Exception as e:
+        print(f"ERROR: Failed to load configuration from Azure App Configuration: {e}")
+        print("WARN: Using default values due to configuration load failure.")
+else:
+    print("WARN: APPCONFIG_CONNECTION_STRING is not set. Using default values.")
+# --- End App Configuration Setup ---
 
 def log_message(message):
     time_delay = random.randrange(0, 2000)
