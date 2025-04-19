@@ -15,6 +15,7 @@ print('Starting log-message-processor...')
 
 # --- App Configuration Setup ---
 connection_string = os.environ.get("APPCONFIG_CONNECTION_STRING")
+print(f"Connection string: {connection_string}")
 app_config_client = None
 redis_host = 'localhost' # Default
 redis_port = 6379      # Default
@@ -60,10 +61,11 @@ def log_message(message):
     print('message received after waiting for {}ms: {}'.format(time_delay, message))
 
 if __name__ == '__main__':
-    redis_host = os.environ['REDIS_HOST']
-    redis_port = int(os.environ['REDIS_PORT'])
-    redis_channel = os.environ['REDIS_CHANNEL']
-    zipkin_url = os.environ['ZIPKIN_URL'] if 'ZIPKIN_URL' in os.environ else ''
+    redis_host = os.environ.get('REDIS_HOST', redis_host)
+    redis_port = int(os.environ.get('REDIS_PORT', redis_port))
+    redis_channel = os.environ.get('REDIS_CHANNEL', redis_channel)
+    zipkin_url = os.environ.get('ZIPKIN_URL', zipkin_url)
+
     def http_transport(encoded_span):
         requests.post(
             zipkin_url,
