@@ -26,10 +26,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - JWT_SECRET=PRFT
-      - AUTH_API_PORT=8000
-      - USERS_API_ADDRESS=http://users-api:8083
-      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
   frontend:
     build:
@@ -40,9 +37,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - AUTH_API_ADDRESS=http://auth-api:8000
-      - TODOS_API_ADDRESS=http://todos-api:8082
-      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
   log-message-processor:
     build:
@@ -51,10 +46,7 @@ services:
     networks:
       - app-network
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
-      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
   todos-api:
     build:
@@ -65,12 +57,7 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - JWT_SECRET=PRFT
-      - TODO_API_PORT=8082
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
-      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
+      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
   users-api:
     build:
@@ -81,8 +68,7 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - JWT_SECRET=PRFT
-      - SERVER_PORT=8083
+      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
 networks:
   app-network:

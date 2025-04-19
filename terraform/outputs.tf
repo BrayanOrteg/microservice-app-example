@@ -13,3 +13,9 @@ output "admin_password" {
   sensitive = true
   value     = random_password.password.result
 }
+
+output "appconfig_connection_string" {
+  description = "Connection string for Azure App Configuration"
+  value       = azurerm_app_configuration.appconfig.primary_connection_string
+  sensitive   = true
+}
