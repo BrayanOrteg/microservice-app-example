@@ -116,6 +116,36 @@ resource "azurerm_virtual_machine_extension" "web_server_install" {
   SETTINGS
 }
 
+# Create Azure App Configuration
+resource "azurerm_app_configuration" "appconfig" {
+  name                = "${random_pet.prefix.id}-appconf"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "free" # Using free SKU for example
+}
+
+# Use local-exec to set the keys after App Configuration creation
+resource "null_resource" "app_config_keys" {
+  depends_on = [azurerm_app_configuration.appconfig]
+
+  provisioner "local-exec" {
+    # Ensure Azure CLI is installed and logged in
+    # Using PowerShell syntax for Windows
+    command = <<EOT
+      az config set extension.use_dynamic_install=yes_without_prompt
+      az appconfig kv set --name ${azurerm_app_configuration.appconfig.name} --key "jwt.secret" --value "${var.jwt_secret}" --yes
+      az appconfig kv set --name ${azurerm_app_configuration.appconfig.name} --key "auth-api.port" --value "${var.auth_api_port}" --yes
+      az appconfig kv set --name ${azurerm_app_configuration.appconfig.name} --key "users-api.port" --value "${var.users_api_port}" --yes
+      az appconfig kv set --name ${azurerm_app_configuration.appconfig.name} --key "todos-api.port" --value "${var.todos_api_port}" --yes
+      az appconfig kv set --name ${azurerm_app_configuration.appconfig.name} --key "redis.host" --value "${var.redis_host}" --yes
+      az appconfig kv set --name ${azurerm_app_configuration.appconfig.name} --key "redis.port" --value "${var.redis_port}" --yes
+      az appconfig kv set --name ${azurerm_app_configuration.appconfig.name} --key "redis.channel" --value "${var.redis_channel}" --yes
+      az appconfig kv set --name ${azurerm_app_configuration.appconfig.name} --key "zipkin.url" --value "${var.zipkin_url}" --yes
+    EOT
+    interpreter = ["PowerShell", "-Command"]
+  }
+}
+
 # Generate random password for Linux VM
 resource "random_password" "password" {
   length      = 20
@@ -130,34 +160,4 @@ resource "random_password" "password" {
 resource "random_pet" "prefix" {
   prefix = var.prefix
   length = 1
-}
-
-# Create Azure App Configuration
-resource "azurerm_app_configuration" "appconfig" {
-  name                = "${random_pet.prefix.id}-appconf"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  sku            = "free"
-}
-
-# Push each setting into App Configuration
-locals {
-  app_settings = {
-    "jwt.secret"               = var.jwt_secret
-    "auth-api.port"            = tostring(var.auth_api_port)
-    "users-api.port"           = tostring(var.users_api_port)
-    "todos-api.port"           = tostring(var.todos_api_port)
-    "redis.host"               = var.redis_host
-    "redis.port"               = tostring(var.redis_port)
-    "redis.channel"            = var.redis_channel
-    "zipkin.url"               = var.zipkin_url
-  }
-}
-
-resource "azurerm_app_configuration_key" "settings" {
-  for_each                 = local.app_settings
-  configuration_store_id   = azurerm_app_configuration.appconfig.id
-  key                      = each.key
-  value                    = each.value
-  depends_on               = [azurerm_app_configuration.appconfig]
 }
