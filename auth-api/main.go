@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+    "context"
+    "strconv"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azappconfig" // Import SDK
 	jwt "github.com/dgrijalva/jwt-go"
