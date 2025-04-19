@@ -154,7 +154,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func GetSettingLoginHandler(userService UserService) echo.HandlerFunc {
+func getLoginHandler(userService UserService) echo.HandlerFunc {
 	f := func(c echo.Context) error {
 		requestData := LoginRequest{}
 		decoder := json.NewDecoder(c.Request().Body)
