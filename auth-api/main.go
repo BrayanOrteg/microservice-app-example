@@ -51,7 +51,7 @@ func loadConfig(ctx context.Context, logger echo.Logger) {
     logger.Info("Fetching configuration from Azure App Configuration...")
 
     // Fetch JWT Secret
-    respSecret, err := client.GetConfigurationSetting(ctx, "jwt.secret", nil)
+    respSecret, err := client.Get(ctx, "jwt.secret", nil)
     if err == nil && respSecret.Value != nil {
         jwtSecret = *respSecret.Value
         logger.Info("Loaded jwt.secret")
@@ -60,7 +60,7 @@ func loadConfig(ctx context.Context, logger echo.Logger) {
     }
 
     // Fetch Auth API Port
-    respPort, err := client.GetConfigurationSetting(ctx, "auth-api.port", nil)
+    respPort, err := client.Get(ctx, "auth-api.port", nil)
     if err == nil && respPort.Value != nil {
         if port, convErr := strconv.Atoi(*respPort.Value); convErr == nil {
             authApiPort = port
@@ -74,7 +74,7 @@ func loadConfig(ctx context.Context, logger echo.Logger) {
 
     // Fetch Users API Address (Assuming you add this key to App Config)
     // Example key name: "users-api.address"
-    respUserAddr, err := client.GetConfigurationSetting(ctx, "users-api.address", nil)
+    respUserAddr, err := client.Get(ctx, "users-api.address", nil)
     if err == nil && respUserAddr.Value != nil {
         userAPIAddress = *respUserAddr.Value
         logger.Infof("Loaded users-api.address: %s", userAPIAddress)
@@ -83,7 +83,7 @@ func loadConfig(ctx context.Context, logger echo.Logger) {
     }
 
     // Fetch Zipkin URL
-    respZipkin, err := client.GetConfigurationSetting(ctx, "zipkin.url", nil)
+    respZipkin, err := client.Get(ctx, "zipkin.url", nil)
     if err == nil && respZipkin.Value != nil {
         zipkinURL = *respZipkin.Value
         logger.Infof("Loaded zipkin.url: %s", zipkinURL)
