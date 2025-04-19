@@ -37,7 +37,7 @@ var (
 )
 
 func loadConfig(ctx context.Context, logger echo.Logger) {
-    connectionString := os.GetEnv("APPCONFIG_CONNECTION_STRING")
+    connectionString := os.Getenv("APPCONFIG_CONNECTION_STRING")
     if connectionString == "" {
         logger.Warn("APPCONFIG_CONNECTION_STRING is not set. Using default values.")
         return
