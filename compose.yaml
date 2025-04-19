@@ -47,11 +47,6 @@ services:
       - app-network
     environment:
       - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
-      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
-      - DATABASE_URL=postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1-pooler.us-east-1.aws.neon.tech/todo?sslmode=require
 
   todos-api:
     build:
@@ -63,13 +58,6 @@ services:
       - "8082:8082"
     environment:
       - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
-      - JWT_SECRET=PRFT
-      - TODO_API_PORT=8082
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
-      - ZIPKIN_URL=http://zipkin:9411/api/v2/spans
-      - DATABASE_URL=postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1-pooler.us-east-1.aws.neon.tech/todo?sslmode=require
 
   users-api:
     build:

@@ -50,7 +50,26 @@
     version: ops
     force: yes
 
-- name: Levantar contenedores con Docker Compose
-  command: docker compose up -d
+- name: Cambiar a la rama feat/external_configuration_store y pullear
+  ansible.builtin.shell: git checkout feat/external_configuration_store && git pull # Use shell module for '&&'
   args:
     chdir: /opt/microservice-app-example
+
+# NEW TASK: Create .env file
+- name: Crear archivo .env con la connection string
+  ansible.builtin.copy:
+    content: "APPCONFIG_CONNECTION_STRING={{ appconfig_connection_string }}"
+    dest: /opt/microservice-app-example/.env
+    owner: azureuser # Adjust if your user is different
+    group: azureuser # Adjust if your group is different
+    mode: '0644'
+  when: appconfig_connection_string is defined and appconfig_connection_string # Ensure variable is passed and not empty
+
+- name: Levantar contenedores con Docker Compose
+  command: docker-compose up -d # Corrected command (hyphen)
+  args:
+    chdir: /opt/microservice-app-example
+  # The environment block below is now somewhat redundant if .env is created,
+  # but it ensures the variable is set even if the .env file task fails or is skipped.
+  environment:
+    APPCONFIG_CONNECTION_STRING: "{{ appconfig_connection_string }}" # Use Ansible variable
