@@ -66,7 +66,7 @@
   when: appconfig_connection_string is defined and appconfig_connection_string # Ensure variable is passed and not empty
 
 - name: Levantar contenedores con Docker Compose
-  command: docker-compose up -d # Corrected command (hyphen)
+  command: docker-compose up --build # Corrected command (hyphen)
   args:
     chdir: /opt/microservice-app-example
   # The environment block below is now somewhat redundant if .env is created,

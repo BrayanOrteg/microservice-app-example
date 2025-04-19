@@ -14,7 +14,7 @@ sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
 print('Starting log-message-processor...')
 
 # --- App Configuration Setup ---
-connection_string = os.environ.get("APPCONFIG_CONNECTION_STRING")
+connection_string = os.environ.get("APP_CONFIG_CONNECTION_STRING")
 print(f"Connection string: {connection_string}")
 app_config_client = None
 redis_host = 'localhost' # Default
