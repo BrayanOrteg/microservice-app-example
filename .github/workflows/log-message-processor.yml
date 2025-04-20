@@ -1,0 +1,28 @@
+name: Log Message Processor CI
+
+on:
+  push:
+    branches:
+      - feat/external_configuration_store
+    paths:
+      - 'log-message-processor/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Auth API
+        run: |
+          docker build -t log-message-processor ./log-message-processor
+
+      - name: Run Redis for Test
+        run: |
+          docker run --name redis --network app-network -d redis:7.0
+
+      - name: Test Docker image
+        run: |
+          docker run --rm --network app-network log-message-processor
