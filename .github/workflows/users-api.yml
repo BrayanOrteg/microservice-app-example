@@ -1,0 +1,43 @@
+name: Users API CI
+
+on:
+  push:
+    branches:
+      - feat/external_configuration_store
+    paths:
+      - 'users-api/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Users API
+        run: |
+          docker build -t users-api ./users-api
+
+      - name: Test Docker image
+        run: |
+          docker run --rm users-api
+
+      - name: Add VM to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 172.203.156.83 >> ~/.ssh/known_hosts
+
+      - name: Pull latest code on remote server
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            sudo git pull origin feat/external_configuration_store \
+          "
+
+      - name: Rebuild and restart Users API container
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            docker-compose up -d --build --force-recreate users-api \
+          "

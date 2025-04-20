@@ -1,0 +1,47 @@
+name: Todos API CI
+
+on:
+  push:
+    branches:
+      - feat/external_configuration_store
+    paths:
+      - 'todos-api/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Todos API
+        run: |
+          docker build -t todos-api ./todos-api
+
+      - name: Run Redis for Test
+        run: |
+          docker run --name redis --network app-network -d redis:7.0
+
+      - name: Test Docker image
+        run: |
+          docker run --rm todos-api
+
+      - name: Add VM to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 172.203.156.83 >> ~/.ssh/known_hosts
+
+      - name: Pull latest code on remote server
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            sudo git pull origin feat/external_configuration_store \
+          "
+
+      - name: Rebuild and restart Todos API container
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            docker-compose up -d --build --force-recreate todos-api \
+          "
