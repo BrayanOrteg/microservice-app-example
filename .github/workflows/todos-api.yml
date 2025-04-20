@@ -1,0 +1,28 @@
+name: Todos API CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'todos-api/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Todos API
+        run: |
+          docker build -t todos-api ./todos-api
+
+      - name: Run Redis for Test
+        run: |
+          docker run --name redis --network app-network -d redis:7.0
+
+      - name: Test Docker image
+        run: |
+          docker run --rm todos-api
