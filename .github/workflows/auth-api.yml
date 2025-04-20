@@ -1,0 +1,24 @@
+name: Auth API CI
+
+on:
+  push:
+    branches:
+      - feat/external_configuration_store
+    paths:
+      - 'auth-api/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Auth API
+        run: |
+          docker build -t auth-api ./auth-api
+
+      - name: Test Docker image
+        run: |
+          docker run --rm auth-api
