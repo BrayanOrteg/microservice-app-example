@@ -15,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Build Docker image for Auth API
+      - name: Build Docker image for Log-Message-Processor
         run: |
           docker build -t log-message-processor ./log-message-processor
 
