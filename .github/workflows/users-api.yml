@@ -22,3 +22,20 @@ jobs:
       - name: Test Docker image
         run: |
           docker run --rm users-api
+
+      - name: Add VM ip to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VM_IP }} >> ~/.ssh/known_hosts
+
+      - name: SSH with username and password
+        run: |
+          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_IP }} "echo 'SSH connection successful'"
+
+      - name: Move to repo directory and pull latest changes
+        run: |
+          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_IP }} "cd /opt/microservice-app-example && git config --global --add safe.directory /opt/microservice-app-example && sudo git pull"
+
+      - name: Run docker compose up to update the container
+        run: |
+          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_IP }} "cd /opt/microservice-app-example && cd users-api && sudo docker-compose up -d --build --force-recreate"
