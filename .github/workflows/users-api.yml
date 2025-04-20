@@ -1,0 +1,24 @@
+name: Users API CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'users-api/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Users API
+        run: |
+          docker build -t users-api ./users-api
+
+      - name: Test Docker image
+        run: |
+          docker run --rm users-api
