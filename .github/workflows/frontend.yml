@@ -1,0 +1,24 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - feat/external_configuration_store
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Frontend
+        run: |
+          docker build -t frontend ./frontend
+
+      - name: Test Docker image
+        run: |
+          docker run --rm frontend
