@@ -7,9 +7,9 @@ const OPERATION_CREATE = 'CREATE',
       OPERATION_DELETE = 'DELETE';
 
 class TodoController {
-    constructor({tracer, redisClient, logChannel}) {
+    constructor({tracer, redisAmbassador, logChannel}) {
         this._tracer = tracer;
-        this._redisClient = redisClient;
+        this._redisAmbassador = redisAmbassador;
         this._logChannel = logChannel;
     }
 
@@ -60,16 +60,17 @@ class TodoController {
                 username: username,
                 todoId: todoId,
             });
+
+            console.log(`Publishing to Redis channel via Ambassador: ${message}`);
+
+            this._redisAmbassador.publish(message)
+                .catch(err => {
+                    console.error('Ambassador failed to publish:', err);
+                });
             
-            console.log(`Publishing to Redis channel ${this._logChannel}: ${message}`);
+            console.log("metrics", this._redisAmbassador.getMetrics())
             
-            this._redisClient.publish(this._logChannel, message, (err, reply) => {
-                if (err) {
-                    console.error('Error publishing to Redis:', err);
-                } else {
-                    console.log(`Successfully published to Redis, receivers: ${reply}`);
-                }
-            });
+            
         });
     }
 
