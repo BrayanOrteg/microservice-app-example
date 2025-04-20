@@ -1,4 +1,4 @@
-name: Auth API CI
+name: Deploy Auth API
 
 on:
   push:
@@ -8,7 +8,8 @@ on:
       - 'auth-api/**'
 
 jobs:
-  build:
+  deploy:
+    name: Build & Deploy Auth API
     runs-on: ubuntu-latest
 
     steps:
@@ -17,25 +18,27 @@ jobs:
 
       - name: Build Docker image for Auth API
         run: |
-          docker build -t auth-api ./auth-api
+          docker build -t auth-api:latest ./auth-api
 
       - name: Test Docker image
         run: |
-          docker run --rm auth-api
+          docker run --rm auth-api:latest
 
-      - name: Add VM ip to known_hosts
+      - name: Add VM to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VM_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H 172.203.156.83 >> ~/.ssh/known_hosts
 
-      - name: SSH with username and password
+      - name: Pull latest code on remote server
         run: |
-          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_IP }} "echo 'SSH connection successful'"
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            sudo git pull origin feat/external_configuration_store \
+          "
 
-      - name: Move to repo directory and pull latest changes
+      - name: Rebuild and restart Auth API container
         run: |
-          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_IP }} "cd /opt/microservice-app-example && git config --global --add safe.directory /opt/microservice-app-example && sudo git pull"
-
-      - name: Run docker compose up to update the container
-        run: |
-          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.VM_USERNAME }}@${{ secrets.VM_IP }} "cd /opt/microservice-app-example && cd auth-api && sudo docker-compose up -d --build --force-recreate"
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            docker-compose up -d --build --force-recreate auth-api \
+          "
