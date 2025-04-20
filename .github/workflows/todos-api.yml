@@ -1,9 +1,9 @@
 name: Todos API CI
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - feat/external_configuration_store
     paths:
       - 'todos-api/**'
 
