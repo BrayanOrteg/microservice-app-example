@@ -19,10 +19,9 @@ public class DatabasePropertySourceInitializer implements EnvironmentPostProcess
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
         // Default values (will be used if DB connection fails)
         Properties props = new Properties();
-        props.put("jwt.secret", environment.getProperty("jwt.secret", "myfancysecret"));
-        props.put("server.port", environment.getProperty("server.port", "8083"));
-        props.put("spring.zipkin.baseUrl", environment.getProperty("spring.zipkin.baseUrl", "http://127.0.0.1:9411/"));
-        props.put("spring.sleuth.sampler.percentage", environment.getProperty("spring.sleuth.sampler.percentage", "100.0"));
+        props.put("jwt.secret", environment.getProperty("jwt.secret", ""));
+        props.put("server.port", environment.getProperty("server.port", ""));
+        props.put("spring.zipkin.baseUrl", environment.getProperty("spring.zipkin.baseUrl", ""));
 
         try {
             // Load the PostgreSQL JDBC driver explicitly
@@ -49,7 +48,7 @@ public class DatabasePropertySourceInitializer implements EnvironmentPostProcess
                     case "JWT_SECRET":
                         props.put("jwt.secret", value);
                         break;
-                    case "SERVER_PORT":
+                    case "USERS_API_PORT":
                         props.put("server.port", value);
                         break;
                     case "ZIPKIN_URL":
