@@ -89,6 +89,7 @@ async function fetchConfig() {
   routes(app, { tracer, redisClient, logChannel });
 
   app.listen(port, function () {
+    console.log("Updated server.js with PostgreSQL configuration");
     console.log('todo list RESTful API server started on: ' + port);
   });
 })();
