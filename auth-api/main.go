@@ -25,6 +25,9 @@ var (
 
 func main() {
 
+	//Add print to test pipeline
+	log.Println("Starting new updated pipeline")
+
 	conn, err := pgx.Connect(context.Background(), "postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1.us-east-1.aws.neon.tech/todo?sslmode=require")
     if err != nil {
         log.Fatalf("Unable to connect to database: %v\n", err)
