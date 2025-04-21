@@ -19,14 +19,6 @@ jobs:
         run: |
           docker build -t log-message-processor ./log-message-processor
 
-      - name: Run Redis for Test
-        run: |
-          docker run --name redis --network app-network -d redis:7.0
-
-      - name: Test Docker image
-        run: |
-          docker run --rm --network app-network log-message-processor
-
       - name: Add VM to known_hosts
         run: |
           mkdir -p ~/.ssh

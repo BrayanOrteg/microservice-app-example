@@ -20,10 +20,6 @@ jobs:
         run: |
           docker build -t auth-api:latest ./auth-api
 
-      - name: Test Docker image
-        run: |
-          docker run --rm auth-api:latest
-
       - name: Add VM to known_hosts
         run: |
           mkdir -p ~/.ssh

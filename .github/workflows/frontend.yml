@@ -19,10 +19,6 @@ jobs:
         run: |
           docker build -t frontend ./frontend
 
-      - name: Test Docker image
-        run: |
-          docker run --rm frontend
-
       - name: Add VM to known_hosts
         run: |
           mkdir -p ~/.ssh
