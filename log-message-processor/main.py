@@ -12,6 +12,7 @@ sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
 sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 1)
 
 print('Starting log-message-processor...')
+print('Updated log-message-processor...')
 
 # Connect to PostgreSQL and fetch configuration values
 def fetch_config():
