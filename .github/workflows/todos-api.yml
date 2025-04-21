@@ -3,7 +3,7 @@ name: Todos API CI
 on:
   push:
     branches:
-      - feat/external_configuration_store
+      - master
     paths:
       - 'todos-api/**'
 

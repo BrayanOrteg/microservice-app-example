@@ -3,7 +3,7 @@ name: Frontend CI
 on:
   push:
     branches:
-      - feat/external_configuration_store
+      - master
     paths:
       - 'frontend/**'
 
@@ -35,5 +35,6 @@ jobs:
         run: |
           sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
             cd /opt/microservice-app-example && \
+            docker-compose build --no-cache frontend  && \
             sudo docker-compose up -d --build --force-recreate frontend \
           "

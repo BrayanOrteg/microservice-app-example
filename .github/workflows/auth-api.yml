@@ -3,7 +3,7 @@ name: Deploy Auth API
 on:
   push:
     branches:
-      - feat/external_configuration_store
+      - master
     paths:
       - 'auth-api/**'
 

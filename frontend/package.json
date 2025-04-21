@@ -1,5 +1,6 @@
 {
   "name": "frontend",
+  "type": "module",
   "version": "1.0.0",
   "description": "UI for sample distributed TODO app",
   "author": "elgris <iddqd07@yandex.ru>",
@@ -21,7 +22,8 @@
     "zipkin": "^0.11.2",
     "zipkin-instrumentation-vue-resource": "^0.2.0",
     "zipkin-transport-http": "^0.11.2",
-    "pg": "^7.18.2"
+    "pg": "^7.18.2",
+    "dotenv": "^8.2.0"
   },
   "devDependencies": {
     "node-sass": "^4.5.3",

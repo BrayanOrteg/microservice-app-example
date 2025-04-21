@@ -10,9 +10,6 @@ services:
       - app-network
     ports:
       - "8080:8080"
-    environment:
-      - AUTH_API_ADDRESS=http://auth-api:8000
-      - TODOS_API_ADDRESS=http://todos-api:8082
 
 networks:
   app-network:

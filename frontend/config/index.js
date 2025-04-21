@@ -1,8 +1,13 @@
 var path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, './.env') }); // Load environment variables from .env
 
-const AUTH_API_ADDRESS = process.env.AUTH_API_ADDRESS || 'http://127.0.0.1:8081';
-const TODOS_API_ADDRESS = process.env.TODOS_API_ADDRESS || 'http://127.0.0.1:8082';
-const ZIPKIN_URL = process.env.ZIPKIN_URL || 'http://127.0.0.1:9411/api/v2/spans';
+const AUTH_API_ADDRESS = process.env.AUTH_API_ADDRESS;
+const TODOS_API_ADDRESS = process.env.TODOS_API_ADDRESS;
+const ZIPKIN_URL = process.env.ZIPKIN_URL;
+
+console.log("AUTH_API_ADDRESS:", AUTH_API_ADDRESS);
+console.log("TODOS_API_ADDRESS:", TODOS_API_ADDRESS);
+console.log("ZIPKIN_URL:", ZIPKIN_URL);
 
 module.exports = {
   build: {
