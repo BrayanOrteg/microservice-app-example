@@ -1,0 +1,40 @@
+name: Deploy Auth API
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'auth-api/**'
+
+jobs:
+  deploy:
+    name: Build & Deploy Auth API
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Auth API
+        run: |
+          docker build -t auth-api:latest ./auth-api
+
+      - name: Add VM to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 172.203.156.83 >> ~/.ssh/known_hosts
+
+      - name: Pull latest code on remote server
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            sudo git pull origin feat/external_configuration_store \
+          "
+
+      - name: Rebuild and restart Auth API container
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            sudo docker-compose up -d --build --force-recreate auth-api \
+          "

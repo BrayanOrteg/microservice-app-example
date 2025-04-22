@@ -8,10 +8,6 @@ services:
       dockerfile: Dockerfile
     networks:
       - app-network
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_CHANNEL=log_channel
 
 networks:
   app-network:

@@ -25,8 +25,6 @@ services:
       - app-network
     ports:
       - "8000:8000"
-    environment:
-      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
   frontend:
     build:
@@ -36,8 +34,6 @@ services:
       - app-network
     ports:
       - "8080:8080"
-    environment:
-      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
   log-message-processor:
     build:
@@ -45,8 +41,6 @@ services:
       dockerfile: Dockerfile
     networks:
       - app-network
-    environment:
-      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
   todos-api:
     build:
@@ -56,8 +50,6 @@ services:
       - app-network
     ports:
       - "8082:8082"
-    environment:
-      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
   users-api:
     build:
@@ -67,8 +59,6 @@ services:
       - app-network
     ports:
       - "8083:8083"
-    environment:
-      - APP_CONFIG_CONNECTION_STRING=${APPCONFIG_CONNECTION_STRING}
 
 networks:
   app-network:

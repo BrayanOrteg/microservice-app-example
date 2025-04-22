@@ -10,9 +10,6 @@ services:
       - app-network
     ports:
       - "8083:8083"
-    environment:
-      - JWT_SECRET=PRFT
-      - SERVER_PORT=8083
 
 networks:
   app-network:

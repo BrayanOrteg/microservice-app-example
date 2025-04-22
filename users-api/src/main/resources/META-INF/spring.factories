@@ -1,0 +1,1 @@
+org.springframework.boot.env.EnvironmentPostProcessor=com.elgris.usersapi.configuration.DatabasePropertySourceInitializer

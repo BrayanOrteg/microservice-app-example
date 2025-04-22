@@ -1,0 +1,40 @@
+name: Frontend CI
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Frontend
+        run: |
+          docker build -t frontend ./frontend
+
+      - name: Add VM to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 172.203.156.83 >> ~/.ssh/known_hosts
+
+      - name: Pull latest code on remote server
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            sudo git pull origin feat/external_configuration_store \
+          "
+
+      - name: Rebuild and restart Frontend container
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            docker-compose build --no-cache frontend  && \
+            sudo docker-compose up -d --build --force-recreate frontend \
+          "

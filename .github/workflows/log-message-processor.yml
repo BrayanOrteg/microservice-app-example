@@ -1,0 +1,39 @@
+name: Log Message Processor CI
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'log-message-processor/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build Docker image for Log-Message-Processor
+        run: |
+          docker build -t log-message-processor ./log-message-processor
+
+      - name: Add VM to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H 172.203.156.83 >> ~/.ssh/known_hosts
+
+      - name: Pull latest code on remote server
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            sudo git pull origin feat/external_configuration_store \
+          "
+
+      - name: Rebuild and restart log-message-processor container
+        run: |
+          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+            cd /opt/microservice-app-example && \
+            sudo docker-compose up -d --build --force-recreate log-message-processor \
+          "

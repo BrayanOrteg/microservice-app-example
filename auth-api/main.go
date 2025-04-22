@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 	"time"
-
+	context "context"
+	"github.com/jackc/pgx/v4"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -24,53 +24,82 @@ var (
 )
 
 func main() {
-	hostport := ":" + os.Getenv("AUTH_API_PORT")
-	userAPIAddress := os.Getenv("USERS_API_ADDRESS")
 
-	envJwtSecret := os.Getenv("JWT_SECRET")
-	if len(envJwtSecret) != 0 {
-		jwtSecret = envJwtSecret
-	}
+	//Add print to test pipeline
+	log.Println("Starting new updated pipeline")
 
-	userService := UserService{
-		Client:         http.DefaultClient,
-		UserAPIAddress: userAPIAddress,
-		AllowedUserHashes: map[string]interface{}{
-			"admin_admin": nil,
-			"johnd_foo":   nil,
-			"janed_ddd":   nil,
-		},
-	}
+	conn, err := pgx.Connect(context.Background(), "postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1.us-east-1.aws.neon.tech/todo?sslmode=require")
+    if err != nil {
+        log.Fatalf("Unable to connect to database: %v\n", err)
+    }
+	defer conn.Close(context.Background())
 
-	e := echo.New()
-	e.Logger.SetLevel(gommonlog.INFO)
+    // Fetch configuration values from the database
+    config := make(map[string]string)
+    rows, err := conn.Query(context.Background(), `SELECT name, value FROM config_table`)
+    if err != nil {
+        log.Fatalf("Failed to fetch configuration from database: %v\n", err)
+    }
+    defer rows.Close()
 
-	if zipkinURL := os.Getenv("ZIPKIN_URL"); len(zipkinURL) != 0 {
-		e.Logger.Infof("init tracing to Zipkit at %s", zipkinURL)
+	for rows.Next() {
+        var name, value string
+        if err := rows.Scan(&name, &value); err != nil {
+            log.Fatalf("Failed to scan configuration row: %v\n", err)
+        }
+        config[name] = value
+    }
 
-		if tracedMiddleware, tracedClient, err := initTracing(zipkinURL); err == nil {
-			e.Use(echo.WrapMiddleware(tracedMiddleware))
-			userService.Client = tracedClient
-		} else {
-			e.Logger.Infof("Zipkin tracer init failed: %s", err.Error())
-		}
-	} else {
-		e.Logger.Infof("Zipkin URL was not provided, tracing is not initialised")
-	}
+	authAPIPort := config["AUTH_API_PORT"]
+    userAPIAddress := config["USERS_API_ADDRESS"]
+    envJwtSecret := config["JWT_SECRET"]
+    zipkinURL := config["ZIPKIN_URL"]
 
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
+    // Update jwtSecret if fetched from the database
+    if envJwtSecret != "" {
+        jwtSecret = envJwtSecret
+    }
 
-	// Route => handler
-	e.GET("/version", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Auth API, written in Go\n")
-	})
+    userService := UserService{
+        Client:         http.DefaultClient,
+        UserAPIAddress: userAPIAddress,
+        AllowedUserHashes: map[string]interface{}{
+            "admin_admin": nil,
+            "johnd_foo":   nil,
+            "janed_ddd":   nil,
+        },
+    }
 
-	e.POST("/login", getLoginHandler(userService))
+    e := echo.New()
+    e.Logger.SetLevel(gommonlog.INFO)
 
-	// Start server
-	e.Logger.Fatal(e.Start(hostport))
+    if zipkinURL != "" {
+        e.Logger.Infof("init tracing to Zipkit at %s", zipkinURL)
+
+        if tracedMiddleware, tracedClient, err := initTracing(zipkinURL); err == nil {
+            e.Use(echo.WrapMiddleware(tracedMiddleware))
+            userService.Client = tracedClient
+        } else {
+            e.Logger.Infof("Zipkin tracer init failed: %s", err.Error())
+        }
+    } else {
+        e.Logger.Infof("Zipkin URL was not provided, tracing is not initialised")
+    }
+
+    e.Use(middleware.Logger())
+    e.Use(middleware.Recover())
+    e.Use(middleware.CORS())
+
+    // Route => handler
+    e.GET("/version", func(c echo.Context) error {
+        return c.String(http.StatusOK, "Auth API, written in Go\n")
+    })
+
+    e.POST("/login", getLoginHandler(userService))
+
+    // Start server
+    hostport := ":" + authAPIPort
+    e.Logger.Fatal(e.Start(hostport))
 }
 
 type LoginRequest struct {
