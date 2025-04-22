@@ -3,7 +3,7 @@ name: Deploy Auth API
 on:
   push:
     branches:
-      - master
+      - feat/external_configuration_store
     paths:
       - 'auth-api/**'
 
@@ -23,18 +23,18 @@ jobs:
       - name: Add VM to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H 172.203.156.83 >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.VM_IP_KEY }} >> ~/.ssh/known_hosts
 
       - name: Pull latest code on remote server
         run: |
-          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+          sshpass -p "${{ secrets.VM_PASSWORD_KEY }}" ssh -o StrictHostKeyChecking=no azureuser@${{ secrets.VM_IP_KEY }} "\
             cd /opt/microservice-app-example && \
             sudo git pull origin feat/external_configuration_store \
           "
 
       - name: Rebuild and restart Auth API container
         run: |
-          sshpass -p "Bpo*3vyw_45&4ik_m=3*" ssh -o StrictHostKeyChecking=no azureuser@172.203.156.83 "\
+          sshpass -p "${{ secrets.VM_PASSWORD_KEY }}" ssh -o StrictHostKeyChecking=no azureuser@${{ secrets.VM_IP_KEY }} "\
             cd /opt/microservice-app-example && \
             sudo docker-compose up -d --build --force-recreate auth-api \
           "
