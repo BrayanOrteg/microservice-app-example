@@ -35,6 +35,6 @@ jobs:
         run: |
           sshpass -p "${{ secrets.VM_PASSWORD_KEY }}" ssh -o StrictHostKeyChecking=no azureuser@${{ secrets.VM_IP_KEY }} "\
             cd /opt/microservice-app-example && \
-            docker-compose build --no-cache frontend  && \
+            sudo docker-compose build --no-cache frontend  && \
             sudo docker-compose up -d --build --force-recreate frontend \
           "
