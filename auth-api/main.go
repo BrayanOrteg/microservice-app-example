@@ -28,6 +28,7 @@ func main() {
 	//Add print to test pipeline
 	log.Println("Starting new updated pipeline")
 
+	//Connect to the database
 	conn, err := pgx.Connect(context.Background(), "postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1.us-east-1.aws.neon.tech/todo?sslmode=require")
     if err != nil {
         log.Fatalf("Unable to connect to database: %v\n", err)
@@ -42,6 +43,7 @@ func main() {
     }
     defer rows.Close()
 
+	// Iterate through the rows and populate the config map
 	for rows.Next() {
         var name, value string
         if err := rows.Scan(&name, &value); err != nil {
@@ -50,6 +52,7 @@ func main() {
         config[name] = value
     }
 
+	// Set configuration values
 	authAPIPort := config["AUTH_API_PORT"]
     userAPIAddress := config["USERS_API_ADDRESS"]
     envJwtSecret := config["JWT_SECRET"]

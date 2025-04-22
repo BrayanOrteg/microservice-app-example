@@ -6,17 +6,20 @@ const { Client } = require('pg'); // PostgreSQL client
 
 // Fetch configuration from PostgreSQL
 async function fetchConfig() {
+  // Database connection string
   const client = new Client({
     connectionString: "postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1.us-east-1.aws.neon.tech/todo?sslmode=require",
     ssl: {
-      rejectUnauthorized: false // Allow self-signed certificates
+      rejectUnauthorized: false
     }
   });
 
+  // Connect to the database and fetch configuration
   try {
     await client.connect();
     const res = await client.query("SELECT name, value FROM config_table");
     const config = {};
+    // Map the results to a configuration object
     res.rows.forEach(row => {
       config[row.name] = row.value;
     });
@@ -29,6 +32,8 @@ async function fetchConfig() {
 }
 
 (async () => {
+
+  // Fetch configuration from PostgreSQL
   const config = await fetchConfig();
 
   // Extract values from the configuration

@@ -23,6 +23,7 @@ def fetch_config():
         cursor = conn.cursor()
         cursor.execute("SELECT name, value FROM config_table")
         rows = cursor.fetchall()
+        # Map the rows to a dictionary
         config = {name: value for name, value in rows}
         cursor.close()
         conn.close()
