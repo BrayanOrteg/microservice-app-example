@@ -4,29 +4,59 @@ const bodyParser = require("body-parser");
 const jwt = require('express-jwt');
 const { Client } = require('pg'); // PostgreSQL client
 
-const ZIPKIN_URL = process.env.ZIPKIN_URL || 'http://127.0.0.1:9411/api/v2/spans';
-const {Tracer, 
-  BatchRecorder,
-  jsonEncoder: {JSON_V2}} = require('zipkin');
-const CLSContext = require('zipkin-context-cls');  
-const {HttpLogger} = require('zipkin-transport-http');
-const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
+// Fetch configuration from PostgreSQL
+async function fetchConfig() {
+  // Database connection string
+  const client = new Client({
+    connectionString: "postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1.us-east-1.aws.neon.tech/todo?sslmode=require",
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
 
-const logChannel = process.env.REDIS_CHANNEL || 'log_channel';
-
-
-const RedisAmbassador = require('./redisAmbassador');
-const redisAmbassador = new RedisAmbassador(
-  logChannel,
-  {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379
-
+  // Connect to the database and fetch configuration
+  try {
+    await client.connect();
+    const res = await client.query("SELECT name, value FROM config_table");
+    const config = {};
+    // Map the results to a configuration object
+    res.rows.forEach(row => {
+      config[row.name] = row.value;
+    });
+    await client.end();
+    return config;
+  } catch (err) {
+    console.error("Failed to fetch configuration from database:", err);
+    process.exit(1);
   }
-);
+}
 
-const port = process.env.TODO_API_PORT || 8082
-const jwtSecret = process.env.JWT_SECRET || "foo"
+(async () => {
+
+  // Fetch configuration from PostgreSQL
+  const config = await fetchConfig();
+
+  // Extract values from the configuration
+  const ZIPKIN_URL = config.ZIPKIN_URL || 'http://127.0.0.1:9411/api/v2/spans';
+  const logChannel = config.REDIS_CHANNEL || 'log_channel';
+  const redisHost = config.REDIS_HOST || 'localhost';
+  const redisPort = parseInt(config.REDIS_PORT, 10) || 6379;
+  const port = parseInt(config.TODO_API_PORT, 10) || 8082;
+  const jwtSecret = config.JWT_SECRET || "foo";
+
+  const { Tracer, BatchRecorder, jsonEncoder: { JSON_V2 } } = require('zipkin');
+  const CLSContext = require('zipkin-context-cls');
+  const { HttpLogger } = require('zipkin-transport-http');
+  const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
+
+  const RedisAmbassador = require('./redisAmbassador');
+  const redisAmbassador = new RedisAmbassador(
+    logChannel,
+    {
+      host: redisHost,
+      port: redisPort    
+    },
+  );
 
   const app = express();
 
@@ -56,4 +86,7 @@ routes(app, {tracer, redisAmbassador})
 
 app.listen(port, function () {
   console.log('todo list RESTful API server started on: ' + port)
-})
+});
+
+})();
+
