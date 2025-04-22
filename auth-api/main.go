@@ -38,7 +38,7 @@ func main() {
     config := make(map[string]string)
     rows, err := conn.Query(context.Background(), `SELECT name, value FROM config_table`)
     if err != nil {
-        log.Fatalf("Failed to fetch configuration from database: %v\n", err)
+        log.Fatalf("Failed too fetch configuration from database: %v\n", err)
     }
     defer rows.Close()
 

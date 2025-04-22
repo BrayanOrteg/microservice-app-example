@@ -9,7 +9,7 @@ async function fetchConfig() {
   const client = new Client({
     connectionString: "postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1.us-east-1.aws.neon.tech/todo?sslmode=require",
     ssl: {
-      rejectUnauthorized: false // Allow self-signed certificates
+      rejectUnauthorized: false //Allow self-signed certificates
     }
   });
 
