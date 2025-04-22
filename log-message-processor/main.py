@@ -14,7 +14,7 @@ sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 1)
 print('Starting log-message-processor...')
 print('Updated log-message-processor...')
 
-# Connect to PostgreSQL and fetch configuration values
+# Connect to PostgreSQL and fetch configuration valuess
 def fetch_config():
     try:
         conn = psycopg2.connect(
