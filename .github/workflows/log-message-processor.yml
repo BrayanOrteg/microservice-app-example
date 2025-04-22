@@ -3,7 +3,7 @@ name: Log Message Processor CI
 on:
   push:
     branches:
-      - feat/external_configuration_store
+      - develop
     paths:
       - 'log-message-processor/**'
 
@@ -28,7 +28,7 @@ jobs:
         run: |
           sshpass -p "${{ secrets.VM_PASSWORD_KEY }}" ssh -o StrictHostKeyChecking=no azureuser@${{ secrets.VM_IP_KEY }} "\
             cd /opt/microservice-app-example && \
-            sudo git pull --no-rebase origin feat/external_configuration_store \
+            sudo git pull --no-rebase origin develop \
           "
 
       - name: Rebuild and restart log-message-processor container

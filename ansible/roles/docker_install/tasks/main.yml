@@ -47,7 +47,7 @@
   git:
     repo: https://github.com/BrayanOrteg/microservice-app-example.git
     dest: /opt/microservice-app-example
-    version: feat/external_configuration_store
+    version: develop
     force: yes
 
 - name: Levantar contenedores con Docker Compose
