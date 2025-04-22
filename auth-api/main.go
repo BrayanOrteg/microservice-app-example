@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	// ErrHttpGenericMessage that is returned in general case, details should be logged in such case
+	// ErrHttpGenericMessage that is returned in general case, details should be logged in such casee
 	ErrHttpGenericMessage = echo.NewHTTPError(http.StatusInternalServerError, "something went wrong, please try again later")
 
 	// ErrWrongCredentials indicates that login attempt failed because of incorrect login or password
