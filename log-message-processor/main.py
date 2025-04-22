@@ -33,7 +33,7 @@ def fetch_config():
 
 config = fetch_config()
 
-# Extract values from the configurationN
+# Extract values from the configuration
 redis_host = config.get('REDIS_HOST', 'localhost')
 redis_port = int(config.get('REDIS_PORT', 6379))
 redis_channel = config.get('REDIS_CHANNEL', 'default_channel')

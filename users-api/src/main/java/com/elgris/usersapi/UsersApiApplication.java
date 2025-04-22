@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 public class UsersApiApplication {
 
 	public static void main(String[] args) {
-		System.out.println("Starting Users API Application...");
+		System.out.println("Starting Users API Application....");
 		SpringApplication.run(UsersApiApplication.class, args);
 	}
 }
