@@ -23,7 +23,7 @@ Vue.use(Auth)
 import Zipkin from './zipkin'
 Vue.use(Zipkin)
 
-/* eslint-disable no-neww */
+/* eslint-disable no-new */
 new Vue({
   el: '#app',
   router,
