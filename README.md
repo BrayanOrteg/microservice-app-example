@@ -83,7 +83,7 @@ GitHub Actions were configured so that each one monitors changes to its service 
 
 ## Development Branching Strategy
 
-For the development branching strategy, we chose gitflow. Since we are only two people and its simple structure of a main, dev, and feature branches fits the scope of the workshop.
+For the development branching strategy, we based on github flow. Since we are only two people and its simple structure of a main and feature branches were we include a dev in between to ensure everything works and is fine, fitting the scope of the workshop.
 
 ![Git Workflow: Feature Branches](https://wac-cdn.atlassian.com/dam/jcr:34c86360-8dea-4be4-92f7-6597d4d5bfae/02%20Feature%20branches.svg?cdnVersion=2663)
 
