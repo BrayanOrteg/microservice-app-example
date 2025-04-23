@@ -36,6 +36,8 @@ services:
       - "8080:8080"
 
   log-message-processor:
+    depends_on:
+      - redis
     build:
       context: ./log-message-processor
       dockerfile: Dockerfile
