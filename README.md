@@ -103,4 +103,6 @@ Los patrones que decidimos implementar fueron:
 	* La lógica del patrón Ambassador y sus funciones adicionales se encuentra en el componente `redisAmbassador`.
 
 ## Diagrama de arquitectura
+![Ingesoft drawio](https://github.com/user-attachments/assets/6e8f93c3-482e-4349-8576-bfad5f9801f6)
+
 
