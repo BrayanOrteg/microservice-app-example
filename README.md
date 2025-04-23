@@ -58,6 +58,28 @@ At the root of the project, you will find the ansible and terraform folders, as 
 		* USERS_API_ADDRESS
 		* USERS_API_PORT
 		* ZIPKIN_URL
+	* Here is an example of de sql snipept:
+		> ```sql
+		> DROP SCHEMA public CASCADE;
+		> CREATE SCHEMA public;
+  		> 
+		> CREATE TABLE config_table (
+		> name VARCHAR(255) PRIMARY KEY,
+  		> value VARCHAR(255) NOT NULL
+  		> );
+  		>
+  		> INSERT INTO public.config_table (name, value) VALUES
+  		> ('JWT_SECRET', 'PRFT'),
+  		> ('AUTH_API_PORT', '8000'),
+  		> ('USERS_API_ADDRESS', 'http://users-api:8083'),
+  		> ('ZIPKIN_URL', 'http://zipkin:9411/api/v2/spans'),
+		> ('REDIS_HOST', 'redis'),
+		> ('REDIS_PORT', 6379),
+  		> ('REDIS_CHANNEL', 'log_channel'),
+  		> ('AUTH_API_ADDRESS', 'http://127.0.0.1:8081'),
+  		> ('TODOS_API_ADDRESS', 'http://127.0.0.1:8082')
+		> ```
+ 
 	* Go to the following files to change the URLs of each container or their logic as needed:
 		* auth-api\main.go
 		* frontend\config\fetch-config.js
