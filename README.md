@@ -96,10 +96,10 @@ Since we are just a team of two, we decided to create a branch from Main called 
 ## Implemented Patterns
 
 The patterns we decided to implement are:
-1. **External Configuration Storage**: Each microservice offers an endpoint to recieve configuration where the external-configuration-provider service is in charge to connect to a PostgreSQL database, and retrieves all the configuration vars periodically, such as URLs of other endpoints for requests and every time he notice a change in the configuration of a service he will notice it with the endpoint.
+1. **External Configuration Storage**: Each microservice offers an endpoint to receive configuration where the external-configuration-provider service is responsible for connecting to a PostgreSQL database and periodically retrieving all configuration variables, such as the URLs of other endpoints for requests. Whenever it detects a change in a service’s configuration, it notifies the corresponding service through its configuration endpoint.
 
 All services get notifications from the provider except:
-	* **frontend**: since it is a client-side project, a configuration JS called fetch-config is executed before the build, which sends a GET petition to the provider and writes a .env file with the variable values so that index.js can read from it.
+	* **frontend**: Since it is a client-side project, a configuration script called fetch-config is executed before the build process. This script sends a GET request to the provider and generates a .env file with the configuration variables, which index.js then reads.
 
 2. **Ambassador**: This pattern was mainly implemented to manage communication with external services, in this case the Redis client used for messaging between microservices, mainly TODOS-API with redisClient. The Ambassador pattern acts as an intermediary between the microservice and Redis, handling connection logic and error management.
 
