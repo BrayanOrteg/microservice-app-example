@@ -5,7 +5,7 @@ const jwt = require('express-jwt');
 const axios = require('axios'); // Make sure to add axios to your dependencies
 
 // Configuration provider client
-const configProviderUrl = process.env.CONFIG_PROVIDER_URL || 'http://config-provider:8888';
+const configProviderUrl = process.env.CONFIG_PROVIDER_URL;
 
 // Get configuration from the configuration provider
 async function fetchConfig() {

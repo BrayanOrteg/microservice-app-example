@@ -2,7 +2,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
-const configProviderUrl = process.env.CONFIG_PROVIDER_URL || 'http://config-provider:8888';
+const configProviderUrl = "http://192.168.1.10:8888";
 
 async function fetchConfig() {
   try {

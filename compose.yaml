@@ -10,16 +10,6 @@ services:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
 
-  redis-secondary:
-    image: redis:7.0
-    networks:
-      - app-network
-    ports:
-      - "6380:6380"
-    volumes:
-      - redis-data:/data
-    command: ["redis-server", "--appendonly", "yes"]
-
   zipkin:
     image: openzipkin/zipkin
     networks:
@@ -27,7 +17,7 @@ services:
     ports:
       - "9411:9411"
 
-  external-configuration-provider:
+  config-provider:
     build:
       context: ./external-configuration-provider
       dockerfile: Dockerfile
@@ -38,7 +28,7 @@ services:
 
   auth-api:
     depends_on:
-      - external-configuration-provider
+      - config-provider
     build:
       context: ./auth-api
       dockerfile: Dockerfile
@@ -46,10 +36,12 @@ services:
       - app-network
     ports:
       - "8000:8000"
+    environment:
+      - CONFIG_PROVIDER_URL=http://config-provider:8888
 
   frontend:
     depends_on:
-      - external-configuration-provider
+      - config-provider
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -60,16 +52,18 @@ services:
 
   log-message-processor:
     depends_on:
-      - external-configuration-provider
+      - config-provider
     build:
       context: ./log-message-processor
       dockerfile: Dockerfile
     networks:
       - app-network
+    environment:
+      - CONFIG_PROVIDER_URL=http://config-provider:8888
 
   todos-api:
     depends_on:
-      - external-configuration-provider
+      - config-provider
     build:
       context: ./todos-api
       dockerfile: Dockerfile
@@ -77,10 +71,12 @@ services:
       - app-network
     ports:
       - "8082:8082"
+    environment:
+      - CONFIG_PROVIDER_URL=http://config-provider:8888
 
   users-api:
     depends_on:
-      - external-configuration-provider
+      - config-provider
     build:
       context: ./users-api
       dockerfile: Dockerfile
@@ -88,6 +84,8 @@ services:
       - app-network
     ports:
       - "8083:8083"
+    environment:
+      - CONFIG_PROVIDER_URL=http://config-provider:8888
 
 networks:
   app-network:
@@ -95,3 +93,4 @@ networks:
 
 volumes:
   redis-data:
+  redis-secondary-data:

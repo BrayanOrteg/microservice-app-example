@@ -16,7 +16,7 @@ ENV CONFIG_PROVIDER_PORT=8888
 EXPOSE 8888
 
 # Run the service with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8888", "--workers", "3", "main:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8888", "main:app"]
 
 # To build and run the Docker container, use the following commands:
 # docker build -t config-provider ./external-configuration-provider

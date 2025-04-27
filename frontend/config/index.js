@@ -1,4 +1,14 @@
-var path = require('path');
+//check if ./env exists and load it
+
+// check if .env exists
+console.log("Checking for .env file...");
+const fs = require('fs');
+const path = require('path');
+const envFilePath = path.resolve(__dirname, './.env');
+if (fs.existsSync(envFilePath)) {
+  console.log(".env file found. Loading environment variables...");
+}
+
 require('dotenv').config({ path: path.resolve(__dirname, './.env') }); // Load environment variables from .env
 
 const AUTH_API_ADDRESS = process.env.AUTH_API_ADDRESS;

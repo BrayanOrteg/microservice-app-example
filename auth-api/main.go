@@ -7,7 +7,6 @@ import (
 	"time"
 	"io/ioutil"
 	"os"
-	context "context"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -27,15 +26,11 @@ var (
 // ConfigResponse represents the response from the config provider
 type ConfigResponse struct {
 	Config      map[string]string `json:"config"`
-	LastUpdated map[string]string `json:"last_updated"`
 }
 
 // FetchConfig fetches configuration from the config provider service
 func FetchConfig() (map[string]string, error) {
 	configProviderURL := os.Getenv("CONFIG_PROVIDER_URL")
-	if configProviderURL == "" {
-		configProviderURL = "http://config-provider:8888"
-	}
 	
 	resp, err := http.Get(configProviderURL + "/config/auth-api")
 	if err != nil {
@@ -63,6 +58,8 @@ func ConfigRefresher(configCh chan map[string]string) {
 		if err != nil {
 			log.Printf("Failed to fetch configuration: %v", err)
 		} else {
+			log.Println("Fetched new configuration")
+			log.Printf("Config: %v", config)
 			configCh <- config
 		}
 		time.Sleep(60 * time.Second) // Check for updates every minute

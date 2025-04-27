@@ -7,6 +7,13 @@ from flask import Flask, jsonify
 import psycopg2
 from datetime import datetime
 
+import sys
+
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
+sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 1)
+
+print('Starting external configuration provider...')
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -44,25 +51,25 @@ def fetch_all_configs():
         
         # Update the cache if there are changes
         if changes:
-            logger.info(f"Configuration changes detected: {list(changes.keys())}")
+            print(f"Configuration changes detected: {list(changes.keys())}")
             config_cache.update(new_config)
             now = datetime.now().isoformat()
             for key in changes:
                 last_updated[key] = now
         else:
-            logger.info("No configuration changes detected")
+            print("No configuration changes detected")
         
         cursor.close()
         conn.close()
         return True
     except Exception as e:
-        logger.error(f"Failed to fetch configuration from database: {e}")
+        print(f"Failed to fetch configuration from database: {e}")
         return False
 
 def config_refresh_task():
     """Background task to periodically refresh configurations"""
     while True:
-        logger.info("Refreshing configuration from database")
+        print("Refreshing configuration from database")
         fetch_all_configs()
         time.sleep(db_check_interval)
 
@@ -84,11 +91,11 @@ def get_service_config(service_name):
     """Get configuration for a specific service"""
     # Map service names to their config prefixes
     service_prefixes = {
-        "auth-api": ["AUTH_API_", "JWT_SECRET", "USERS_API_ADDRESS", "ZIPKIN_URL"],
-        "users-api": ["SERVER_PORT", "JWT_SECRET", "ZIPKIN_URL"],
+        "auth-api": ["AUTH_API_PORT", "JWT_SECRET", "USERS_API_ADDRESS", "ZIPKIN_URL"],
+        "users-api": ["USERS_API_PORT", "SERVER_PORT", "JWT_SECRET", "ZIPKIN_URL"],
         "todos-api": ["TODO_API_", "JWT_SECRET", "REDIS_", "ZIPKIN_URL"],
         "log-message-processor": ["REDIS_", "ZIPKIN_URL"],
-        "frontend": ["AUTH_API_ADDRESS", "TODOS_API_ADDRESS"]
+        "frontend": ["AUTH_API_ADDRESS", "TODOS_API_ADDRESS", "ZIPKIN_URL"],
     }
     
     if service_name not in service_prefixes:
@@ -99,19 +106,16 @@ def get_service_config(service_name):
     
     # Filter config items that match the service's prefixes
     service_config = {}
-    updates = {}
     
     for key, value in config_cache.items():
         for prefix in prefixes:
             if key.startswith(prefix) or key == prefix:
                 service_config[key] = value
-                if key in last_updated:
-                    updates[key] = last_updated[key]
-                break
-    
+
+    print(f"Configuration for {service_name}: {service_config}")
+
     return jsonify({
-        "config": service_config,
-        "last_updated": updates
+        "config": service_config
     }), 200
 
 @app.route('/config', methods=['GET'])
@@ -122,18 +126,16 @@ def get_all_config():
         "last_updated": last_updated
     }), 200
 
-if __name__ == '__main__':
+def initialize_app():
     # Initial configuration load
     if fetch_all_configs():
-        logger.info(f"Initial configuration loaded: {len(config_cache)} items")
+        print(f"Initial configuration loaded: {len(config_cache)} items")
     else:
-        logger.error("Failed to load initial configuration")
+        print("Failed to load initial configuration")
     
     # Start the background refresh task
     refresh_thread = threading.Thread(target=config_refresh_task, daemon=True)
     refresh_thread.start()
-    
-    # Start the Flask server
-    port = int(os.environ.get("CONFIG_PROVIDER_PORT", 8888))
-    logger.info(f"Starting configuration provider service on port {port}")
-    app.run(host='0.0.0.0', port=port)
+
+# Call initialization when imported
+initialize_app()

@@ -50,6 +50,18 @@
     version: develop
     force: yes
 
+- name: Editar el archivo fetch-config y poner en la línea 5 const configProviderUrl = "http://VMIp:8888";
+  lineinfile:
+    path: /opt/microservice-app-example/frontend/src/fetch-config.js
+    regexp: '^const configProviderUrl'
+    line: 'const configProviderUrl = "http://{{ vmip }}:8888";'
+    state: present
+
+- name: Levantar config-provider antes que los demás microservicios
+  command: docker compose up -d config-provider
+  args:
+    chdir: /opt/microservice-app-example
+
 - name: Levantar contenedores con Docker Compose
   command: docker compose up -d
   args:
