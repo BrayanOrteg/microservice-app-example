@@ -22,7 +22,7 @@
     "zipkin": "^0.11.2",
     "zipkin-instrumentation-vue-resource": "^0.2.0",
     "zipkin-transport-http": "^0.11.2",
-    "pg": "^7.18.2",
+    "axios": "^0.18.0",
     "dotenv": "^8.2.0"
   },
   "devDependencies": {

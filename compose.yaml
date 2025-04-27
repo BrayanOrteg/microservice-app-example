@@ -10,6 +10,16 @@ services:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
 
+  redis-secondary:
+    image: redis:7.0
+    networks:
+      - app-network
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+
   zipkin:
     image: openzipkin/zipkin
     networks:
@@ -17,7 +27,18 @@ services:
     ports:
       - "9411:9411"
 
+  external-configuration-provider:
+    build:
+      context: ./external-configuration-provider
+      dockerfile: Dockerfile
+    networks:
+      - app-network
+    ports:
+      - "8888:8888"
+
   auth-api:
+    depends_on:
+      - external-configuration-provider
     build:
       context: ./auth-api
       dockerfile: Dockerfile
@@ -27,6 +48,8 @@ services:
       - "8000:8000"
 
   frontend:
+    depends_on:
+      - external-configuration-provider
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -36,6 +59,8 @@ services:
       - "8080:8080"
 
   log-message-processor:
+    depends_on:
+      - external-configuration-provider
     build:
       context: ./log-message-processor
       dockerfile: Dockerfile
@@ -43,6 +68,8 @@ services:
       - app-network
 
   todos-api:
+    depends_on:
+      - external-configuration-provider
     build:
       context: ./todos-api
       dockerfile: Dockerfile
@@ -52,6 +79,8 @@ services:
       - "8082:8082"
 
   users-api:
+    depends_on:
+      - external-configuration-provider
     build:
       context: ./users-api
       dockerfile: Dockerfile

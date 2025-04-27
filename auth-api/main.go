@@ -5,8 +5,9 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"io/ioutil"
+	"os"
 	context "context"
-	"github.com/jackc/pgx/v4"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -23,86 +24,142 @@ var (
 	jwtSecret = "myfancysecret"
 )
 
+// ConfigResponse represents the response from the config provider
+type ConfigResponse struct {
+	Config      map[string]string `json:"config"`
+	LastUpdated map[string]string `json:"last_updated"`
+}
+
+// FetchConfig fetches configuration from the config provider service
+func FetchConfig() (map[string]string, error) {
+	configProviderURL := os.Getenv("CONFIG_PROVIDER_URL")
+	if configProviderURL == "" {
+		configProviderURL = "http://config-provider:8888"
+	}
+	
+	resp, err := http.Get(configProviderURL + "/config/auth-api")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	
+	var configResp ConfigResponse
+	if err := json.Unmarshal(body, &configResp); err != nil {
+		return nil, err
+	}
+	
+	return configResp.Config, nil
+}
+
+// ConfigRefresher periodically fetches configuration
+func ConfigRefresher(configCh chan map[string]string) {
+	for {
+		config, err := FetchConfig()
+		if err != nil {
+			log.Printf("Failed to fetch configuration: %v", err)
+		} else {
+			configCh <- config
+		}
+		time.Sleep(60 * time.Second) // Check for updates every minute
+	}
+}
+
 func main() {
+	log.Println("Starting auth-api service")
 
-	//Add print to test pipeline
-	log.Println("Starting new updated pipeline")
-
-	//Connect to the database
-	conn, err := pgx.Connect(context.Background(), "postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1.us-east-1.aws.neon.tech/todo?sslmode=require")
-    if err != nil {
-        log.Fatalf("Unable to connect to database: %v\n", err)
-    }
-	defer conn.Close(context.Background())
-
-    // Fetch configuration values from the database
-    config := make(map[string]string)
-    rows, err := conn.Query(context.Background(), `SELECT name, value FROM config_table`)
-    if err != nil {
-        log.Fatalf("Failed too fetch configuration from database: %v\n", err)
-    }
-    defer rows.Close()
-
-	// Iterate through the rows and populate the config map
-	for rows.Next() {
-        var name, value string
-        if err := rows.Scan(&name, &value); err != nil {
-            log.Fatalf("Failed to scan configuration row: %v\n", err)
-        }
-        config[name] = value
-    }
+	// Set up config channel and start refresher
+	configCh := make(chan map[string]string)
+	go ConfigRefresher(configCh)
+	
+	// Get initial configuration
+	config, err := FetchConfig()
+	if err != nil {
+		log.Printf("Failed to fetch initial configuration: %v", err)
+		// Use default values
+		config = map[string]string{
+			"AUTH_API_PORT": "8000",
+			"USERS_API_ADDRESS": "http://users-api:8083",
+			"JWT_SECRET": "myfancysecret",
+			"ZIPKIN_URL": "",
+		}
+	}
 
 	// Set configuration values
 	authAPIPort := config["AUTH_API_PORT"]
-    userAPIAddress := config["USERS_API_ADDRESS"]
-    envJwtSecret := config["JWT_SECRET"]
-    zipkinURL := config["ZIPKIN_URL"]
+	userAPIAddress := config["USERS_API_ADDRESS"]
+	envJwtSecret := config["JWT_SECRET"]
+	zipkinURL := config["ZIPKIN_URL"]
 
-    // Update jwtSecret if fetched from the database
-    if envJwtSecret != "" {
-        jwtSecret = envJwtSecret
-    }
+	// Update jwtSecret if available
+	if envJwtSecret != "" {
+		jwtSecret = envJwtSecret
+	}
 
-    userService := UserService{
-        Client:         http.DefaultClient,
-        UserAPIAddress: userAPIAddress,
-        AllowedUserHashes: map[string]interface{}{
-            "admin_admin": nil,
-            "johnd_foo":   nil,
-            "janed_ddd":   nil,
-        },
-    }
+	userService := UserService{
+		Client:         http.DefaultClient,
+		UserAPIAddress: userAPIAddress,
+		AllowedUserHashes: map[string]interface{}{
+			"admin_admin": nil,
+			"johnd_foo":   nil,
+			"janed_ddd":   nil,
+		},
+	}
 
-    e := echo.New()
-    e.Logger.SetLevel(gommonlog.INFO)
+	e := echo.New()
+	e.Logger.SetLevel(gommonlog.INFO)
 
-    if zipkinURL != "" {
-        e.Logger.Infof("init tracing to Zipkit at %s", zipkinURL)
+	if zipkinURL != "" {
+		e.Logger.Infof("init tracing to Zipkit at %s", zipkinURL)
 
-        if tracedMiddleware, tracedClient, err := initTracing(zipkinURL); err == nil {
-            e.Use(echo.WrapMiddleware(tracedMiddleware))
-            userService.Client = tracedClient
-        } else {
-            e.Logger.Infof("Zipkin tracer init failed: %s", err.Error())
-        }
-    } else {
-        e.Logger.Infof("Zipkin URL was not provided, tracing is not initialised")
-    }
+		if tracedMiddleware, tracedClient, err := initTracing(zipkinURL); err == nil {
+			e.Use(echo.WrapMiddleware(tracedMiddleware))
+			userService.Client = tracedClient
+		} else {
+			e.Logger.Infof("Zipkin tracer init failed: %s", err.Error())
+		}
+	} else {
+		e.Logger.Infof("Zipkin URL was not provided, tracing is not initialised")
+	}
 
-    e.Use(middleware.Logger())
-    e.Use(middleware.Recover())
-    e.Use(middleware.CORS())
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORS())
 
-    // Route => handler
-    e.GET("/version", func(c echo.Context) error {
-        return c.String(http.StatusOK, "Auth API, written in Go\n")
-    })
+	// Route => handler
+	e.GET("/version", func(c echo.Context) error {
+		return c.String(http.StatusOK, "Auth API, written in Go\n")
+	})
 
-    e.POST("/login", getLoginHandler(userService))
+	e.POST("/login", getLoginHandler(userService))
+	
+	// Handle config updates in a separate goroutine
+	go func() {
+		for newConfig := range configCh {
+			log.Println("Received updated configuration")
+			
+			// Update userAPIAddress if it changed
+			if newUserAPIAddress, ok := newConfig["USERS_API_ADDRESS"]; ok && newUserAPIAddress != userAPIAddress {
+				userAPIAddress = newUserAPIAddress
+				userService.UserAPIAddress = newUserAPIAddress
+				log.Printf("Updated USERS_API_ADDRESS to %s", newUserAPIAddress)
+			}
+			
+			// Update JWT secret if it changed
+			if newJwtSecret, ok := newConfig["JWT_SECRET"]; ok && newJwtSecret != jwtSecret {
+				jwtSecret = newJwtSecret
+				log.Println("Updated JWT_SECRET")
+			}
+		}
+	}()
 
-    // Start server
-    hostport := ":" + authAPIPort
-    e.Logger.Fatal(e.Start(hostport))
+	// Start server
+	hostport := ":" + authAPIPort
+	e.Logger.Fatal(e.Start(hostport))
 }
 
 type LoginRequest struct {
