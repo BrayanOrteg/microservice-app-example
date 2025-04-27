@@ -62,11 +62,11 @@
     state: present
 
 - name: Levantar config-provider antes que los demás microservicios
-  command: docker compose up -d config-provider
+  command: sudo docker compose up config-provider --build -d
   args:
     chdir: /opt/microservice-app-example
 
 - name: Levantar contenedores con Docker Compose
-  command: docker compose up -d
+  command: sudo docker compose up -d
   args:
     chdir: /opt/microservice-app-example
