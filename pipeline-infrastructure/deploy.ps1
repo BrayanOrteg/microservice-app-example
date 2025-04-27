@@ -1,7 +1,7 @@
 param (
-    [string]$TerraformPath = "C:\Users\Brayan\Documents\Trabajos_U\SEMESTRE_8\ingesoft5\microservice-app-example\terraform",
-    [string]$InventoryPath = "C:\Users\Brayan\Documents\Trabajos_U\SEMESTRE_8\ingesoft5\microservice-app-example\ansible\inventory\hosts.ini",
-    [string]$AnsiblePath = "/mnt/c/Users/Brayan/Documents/Trabajos_U/SEMESTRE_8/ingesoft5/microservice-app-example/ansible"
+    [string]$TerraformPath = "C:\Cositas\taller1\microservice-app-example\terraform",
+    [string]$InventoryPath = "C:\Cositas\taller1\microservice-app-example\ansible\inventory\hosts.ini",
+    [string]$AnsiblePath = "/mnt/c/Cositas/taller1/microservice-app-example/ansible"
 )
 
 # Navigate to the Terraform directory

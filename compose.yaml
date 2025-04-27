@@ -27,8 +27,6 @@ services:
       - "8888:8888"
 
   auth-api:
-    depends_on:
-      - config-provider
     build:
       context: ./auth-api
       dockerfile: Dockerfile
@@ -40,8 +38,6 @@ services:
       - CONFIG_PROVIDER_URL=http://config-provider:8888
 
   frontend:
-    depends_on:
-      - config-provider
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -51,8 +47,6 @@ services:
       - "8080:8080"
 
   log-message-processor:
-    depends_on:
-      - config-provider
     build:
       context: ./log-message-processor
       dockerfile: Dockerfile
@@ -62,8 +56,6 @@ services:
       - CONFIG_PROVIDER_URL=http://config-provider:8888
 
   todos-api:
-    depends_on:
-      - config-provider
     build:
       context: ./todos-api
       dockerfile: Dockerfile
@@ -75,8 +67,6 @@ services:
       - CONFIG_PROVIDER_URL=http://config-provider:8888
 
   users-api:
-    depends_on:
-      - config-provider
     build:
       context: ./users-api
       dockerfile: Dockerfile

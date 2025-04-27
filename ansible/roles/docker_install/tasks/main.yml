@@ -50,9 +50,13 @@
     version: develop
     force: yes
 
-- name: Editar el archivo fetch-config y poner en la línea 5 const configProviderUrl = "http://VMIp:8888";
+- name: Obtener la dirección IP de la VM
+  set_fact:
+    vmip: "{{ ansible_default_ipv4.address }}"
+
+- name: Editar el archivo fetch-config y poner en ip de la VM en la linea 5
   lineinfile:
-    path: /opt/microservice-app-example/frontend/src/fetch-config.js
+    path: /opt/microservice-app-example/frontend/config/fetch-config.js
     regexp: '^const configProviderUrl'
     line: 'const configProviderUrl = "http://{{ vmip }}:8888";'
     state: present
