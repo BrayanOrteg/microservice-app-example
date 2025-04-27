@@ -110,6 +110,6 @@ All services get notifications from the provider except:
 	* The logic for the Ambassador pattern and its additional functions is found in the `redisAmbassador` component.
 
 ## Architecture Diagram
-![Ingesoft drawio](https://github.com/user-attachments/assets/6e8f93c3-482e-4349-8576-bfad5f9801f6)
+![Ingesoft drawio](./Ingesoft.drawio.png)
 
 
