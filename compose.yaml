@@ -10,6 +10,16 @@ services:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
 
+  redis-secondary:
+    image: redis:7.0
+    networks:
+      - app-network
+    ports:
+      - "6380:6380"
+    volumes:
+      - redis-secondary-data:/data
+    command: ["redis-server", "--appendonly", "yes", "--port", "6380"]
+
   zipkin:
     image: openzipkin/zipkin
     networks:
@@ -54,6 +64,13 @@ services:
       - app-network
     environment:
       - CONFIG_PROVIDER_URL=http://config-provider:8888
+    ports:
+      - "8089:8089"
+    # Make sure this service starts after Redis to avoid connection issues
+    depends_on:
+      - redis
+      - redis-secondary
+      - config-provider
 
   todos-api:
     build:

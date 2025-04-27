@@ -58,7 +58,9 @@ At the root of the project, you will find the ansible and terraform folders, as 
 		* USERS_API_ADDRESS
 		* USERS_API_PORT
 		* ZIPKIN_URL
-	* Go to the following files to change the URLs of each container or their logic as needed:
+	* Go to the global compose up to change the URLs of each container
+		* The variable is CONFIG_PROVIDER_URL
+	* If you need to change the logic of the connection the files are:
 		* auth-api\main.go
 		* frontend\config\fetch-config.js
 		* log-message-processor\main.py
@@ -94,9 +96,10 @@ Since we are just a team of two, we decided to create a branch from Main called 
 ## Implemented Patterns
 
 The patterns we decided to implement are:
-1. **External Configuration Storage**: Each microservice connects to an external storage, in this case a PostgreSQL database, and retrieves information related to its configuration, such as URLs of other endpoints for requests, the port it will run on, the JWT secret, among others. This is implemented in the previously mentioned files, where all services fetch the configuration directly except:
-	* **users-api**: where an EnvironmentPostProcessor was defined to connect to the database, extract the variables, map them to Spring property names, and add them.
-	* **frontend**: since it is a client-side project, a configuration JS called fetch-config is executed before the build, which reads the DB and writes a .env file with the variable values so that index.js can read from it.
+1. **External Configuration Storage**: Each microservice offers an endpoint to recieve configuration where the external-configuration-provider service is in charge to connect to a PostgreSQL database, and retrieves all the configuration vars periodically, such as URLs of other endpoints for requests and every time he notice a change in the configuration of a service he will notice it with the endpoint.
+
+All services get notifications from the provider except:
+	* **frontend**: since it is a client-side project, a configuration JS called fetch-config is executed before the build, which sends a GET petition to the provider and writes a .env file with the variable values so that index.js can read from it.
 
 2. **Ambassador**: This pattern was mainly implemented to manage communication with external services, in this case the Redis client used for messaging between microservices, mainly TODOS-API with redisClient. The Ambassador pattern acts as an intermediary between the microservice and Redis, handling connection logic and error management.
 

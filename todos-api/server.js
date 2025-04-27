@@ -3,6 +3,8 @@ const express = require('express');
 const bodyParser = require("body-parser");
 const jwt = require('express-jwt');
 const axios = require('axios'); // Make sure to add axios to your dependencies
+const TodoController = require('./todoController');
+const RedisAmbassador = require('./redisAmbassador');
 
 // Configuration provider client
 const configProviderUrl = process.env.CONFIG_PROVIDER_URL;
@@ -25,18 +27,6 @@ async function fetchConfig() {
   }
 }
 
-// Periodically refresh configuration
-function startConfigRefresh(callback, interval = 60000) {
-  setInterval(async () => {
-    try {
-      const newConfig = await fetchConfig();
-      callback(newConfig);
-    } catch (error) {
-      console.error('Error refreshing configuration:', error);
-    }
-  }, interval);
-}
-
 (async () => {
   // Initial config fetch
   let config = await fetchConfig();
@@ -54,14 +44,21 @@ function startConfigRefresh(callback, interval = 60000) {
   const { HttpLogger } = require('zipkin-transport-http');
   const zipkinMiddleware = require('zipkin-instrumentation-express').expressMiddleware;
 
-  const RedisAmbassador = require('./redisAmbassador');
+  // Initialize redis ambassador
   let redisAmbassador = new RedisAmbassador(
     logChannel,
     {
       host: redisHost,
-      port: redisPort    
-    },
+      port: redisPort
+    }
   );
+
+  // Initialize the todo controller
+  const todoController = new TodoController({
+    tracer: null, // Will be set after creating the tracer
+    redisAmbassador,
+    logChannel
+  });
 
   const app = express();
 
@@ -75,43 +72,34 @@ function startConfigRefresh(callback, interval = 60000) {
   });
   const localServiceName = 'todos-api';
   const tracer = new Tracer({ ctxImpl, recorder, localServiceName });
+  
+  // Update the tracer in todoController
+  todoController.updateDependencies({ tracer });
 
-  // Configuration refresh handler
-  startConfigRefresh((newConfig) => {
-    console.log('Refreshing configuration');
+  // Add a route to handle configuration updates
+  app.post('/config/update', bodyParser.json(), (req, res) => {
+    console.log('Received configuration update:', req.body.config);
+    const newConfig = req.body.config;
     
-    // Update Redis configuration if it changed
-    if (newConfig.REDIS_HOST !== redisHost || 
-        parseInt(newConfig.REDIS_PORT, 10) !== redisPort ||
-        newConfig.REDIS_CHANNEL !== logChannel) {
-      
-      redisHost = newConfig.REDIS_HOST;
-      redisPort = parseInt(newConfig.REDIS_PORT, 10);
-      logChannel = newConfig.REDIS_CHANNEL;
-      
-      // Recreate Redis ambassador with new configuration
-      redisAmbassador = new RedisAmbassador(
-        logChannel,
-        {
-          host: redisHost,
-          port: redisPort
-        }
-      );
-      console.log(`Redis configuration updated to ${redisHost}:${redisPort} channel:${logChannel}`);
+    // Update Redis configuration through the TodoController
+    if (newConfig.REDIS_HOST || newConfig.REDIS_PORT || newConfig.REDIS_CHANNEL) {
+      redisAmbassador = todoController.updateConfiguration(newConfig);
     }
     
     // Update JWT secret if changed
-    if (newConfig.JWT_SECRET !== jwtSecret) {
+    if (newConfig.JWT_SECRET && newConfig.JWT_SECRET !== jwtSecret) {
       jwtSecret = newConfig.JWT_SECRET;
       console.log('JWT Secret updated');
     }
     
     // Update Zipkin URL if changed
-    if (newConfig.ZIPKIN_URL !== ZIPKIN_URL) {
+    if (newConfig.ZIPKIN_URL && newConfig.ZIPKIN_URL !== ZIPKIN_URL) {
       ZIPKIN_URL = newConfig.ZIPKIN_URL;
       // Note: You might need to recreate the Zipkin tracer here
       console.log(`Zipkin URL updated to ${ZIPKIN_URL}`);
     }
+    
+    return res.status(200).json({ status: 'Configuration updated successfully' });
   });
 
   app.use(jwt({ secret: jwtSecret }))
@@ -125,7 +113,8 @@ function startConfigRefresh(callback, interval = 60000) {
   app.use(bodyParser.json())
 
   const routes = require('./routes')
-  routes(app, {tracer, redisAmbassador}) 
+  // Pass the todoController to routes instead of creating a new one
+  routes(app, {tracer, redisAmbassador, todoController}) 
 
   app.listen(port, function () {
     console.log('todo list RESTful API server started on: ' + port)

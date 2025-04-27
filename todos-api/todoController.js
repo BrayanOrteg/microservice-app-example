@@ -2,6 +2,7 @@
 const cache = require('memory-cache');
 const {Annotation, 
     jsonEncoder: {JSON_V2}} = require('zipkin');
+const RedisAmbassador = require('./redisAmbassador');
 
 const OPERATION_CREATE = 'CREATE',
       OPERATION_DELETE = 'DELETE';
@@ -10,7 +11,45 @@ class TodoController {
     constructor({tracer, redisAmbassador, logChannel}) {
         this._tracer = tracer;
         this._redisAmbassador = redisAmbassador;
-        this._logChannel = logChannel;
+        this._logChannel = logChannel || 'log_channel';
+        this._redisConfig = {
+            host: 'localhost',
+            port: 6379
+        };
+    }
+
+    // Update dependencies like tracer or redisAmbassador when they change
+    updateDependencies({tracer, redisAmbassador}) {
+        if (tracer) this._tracer = tracer;
+        if (redisAmbassador) this._redisAmbassador = redisAmbassador;
+    }
+
+    // Handle configuration updates
+    updateConfiguration(config) {
+        const needRedisReconnect = 
+            (config.REDIS_HOST && config.REDIS_HOST !== this._redisConfig.host) ||
+            (config.REDIS_PORT && parseInt(config.REDIS_PORT, 10) !== this._redisConfig.port) ||
+            (config.REDIS_CHANNEL && config.REDIS_CHANNEL !== this._logChannel);
+            
+        // Update Redis configuration
+        if (config.REDIS_HOST) this._redisConfig.host = config.REDIS_HOST;
+        if (config.REDIS_PORT) this._redisConfig.port = parseInt(config.REDIS_PORT, 10);
+        if (config.REDIS_CHANNEL) this._logChannel = config.REDIS_CHANNEL;
+        
+        // Recreate Redis ambassador if configuration changed
+        if (needRedisReconnect) {
+            this._redisAmbassador = new RedisAmbassador(
+                this._logChannel,
+                {
+                    host: this._redisConfig.host,
+                    port: this._redisConfig.port,
+                    connectionTimeout: 5000
+                }
+            );
+            console.log(`Redis configuration updated in TodoController to ${this._redisConfig.host}:${this._redisConfig.port} channel:${this._logChannel}`);
+        }
+        
+        return this._redisAmbassador;
     }
 
     // TODO: these methods are not concurrent-safe
@@ -63,14 +102,17 @@ class TodoController {
 
             console.log(`Publishing to Redis channel via Ambassador: ${message}`);
 
-            this._redisAmbassador.publish(message)
-                .catch(err => {
-                    console.error('Ambassador failed to publish:', err);
-                });
-            
-            console.log("metrics", this._redisAmbassador.getMetrics())
-            
-            
+            // Use the updated redisAmbassador
+            if (this._redisAmbassador) {
+                this._redisAmbassador.publish(message)
+                    .catch(err => {
+                        console.error('Ambassador failed to publish:', err);
+                    });
+                
+                console.log("metrics", this._redisAmbassador.getMetrics());
+            } else {
+                console.error('Redis Ambassador not available');
+            }
         });
     }
 

@@ -6,7 +6,10 @@ import requests
 import threading
 import sys
 import random
+import traceback
 from redis.exceptions import ConnectionError, TimeoutError
+from flask import Flask, request, jsonify
+from py_zipkin.zipkin import zipkin_span, ZipkinAttrs, generate_random_64bit_string
 
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
 sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 1)
@@ -18,9 +21,9 @@ config_provider_url = os.environ.get('CONFIG_PROVIDER_URL', '')
 
 # Default configuration values
 config = {
-    'REDIS_HOST': '',
-    'REDIS_PORT': '',
-    'REDIS_CHANNEL': '',
+    'REDIS_HOST': 'redis',    # Use default Docker service name
+    'REDIS_PORT': '6379',     # Default Redis port
+    'REDIS_CHANNEL': 'log_channel',  # Default channel name
     'ZIPKIN_URL': ''
 }
 
@@ -29,6 +32,49 @@ pubsub = None
 redis_client = None
 # Flag to control main processing loop
 running = True
+
+# Create Flask app for the config update endpoint
+app = Flask(__name__)
+
+@app.route('/config/update', methods=['POST'])
+def update_config():
+    """Endpoint to receive configuration updates"""
+    global config, pubsub, redis_client, running
+    
+    try:
+        data = request.json
+        if not data or 'config' not in data:
+            return jsonify({"status": "error", "message": "No configuration data provided"}), 400
+        
+        new_config = data['config']
+        print(f"Received configuration update: {new_config}")
+        
+        # Check if Redis configuration has changed
+        redis_config_changed = False
+        for key in ['REDIS_HOST', 'REDIS_PORT', 'REDIS_CHANNEL']:
+            if key in new_config and new_config[key] != config.get(key, ''):
+                config[key] = new_config[key]
+                redis_config_changed = True
+        
+        # Update Zipkin URL if provided
+        if 'ZIPKIN_URL' in new_config:
+            config['ZIPKIN_URL'] = new_config['ZIPKIN_URL']
+            print(f"Updated Zipkin URL to {config['ZIPKIN_URL']}")
+        
+        # Reconnect to Redis if configuration changed
+        if redis_config_changed:
+            running = False  # Stop the main processing loop temporarily
+            print(f"Redis configuration changed. Attempting reconnection to {config['REDIS_HOST']}:{config['REDIS_PORT']}")
+            try:
+                config_refresher()    
+            except Exception as e:
+                print(f"❌ Error during Redis reconnection: {e}")
+        
+        return jsonify({"status": "success", "message": "Configuration updated successfully"}), 200
+    
+    except Exception as e:
+        print(f"Error updating configuration: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 def fetch_config():
     """Fetch configuration from the configuration provider service"""
@@ -55,34 +101,28 @@ def fetch_config():
         return False
 
 def config_refresher():
-    """Background thread to periodically refresh configuration"""
-    global pubsub, redis_client
-    
-    while True:
-        has_updates = fetch_config()
-        
-        # If Redis configuration has changed, reconnect
-        if has_updates and redis_client is not None:
+    global pubsub, redis_client, running
+
+    try:
+        # Close existing connections
+        if pubsub:
+            pubsub.unsubscribe()
+            pubsub.close()
+        if redis_client:
             try:
-                # Close existing connections
-                if pubsub:
-                    pubsub.unsubscribe()
-                    pubsub.close()
-                if redis_client:
-                    try:
-                        redis_client.close()
-                    except AttributeError:
-                        # Para versiones anteriores de redis-py
-                        redis_client.connection_pool.disconnect()
-                    
-                # Create new connections with updated config
-                initialize_redis_connection()
-                print(f"Reconnected to Redis at {config['REDIS_HOST']}:{config['REDIS_PORT']} on channel {config['REDIS_CHANNEL']}")
-            except Exception as e:
-                print(f"Failed to reconnect to Redis: {e}")
-        
-        # Sleep for 60 seconds before checking again
-        time.sleep(60)
+                redis_client.close()
+            except AttributeError:
+                # Para versiones anteriores de redis-py
+                redis_client.connection_pool.disconnect()
+
+        # Create new connections with updated config
+        initialize_redis_connection()
+        print(f"Reconnected to Redis at {config['REDIS_HOST']}:{config['REDIS_PORT']} on channel {config['REDIS_CHANNEL']}")
+        # Ping
+        redis_client.ping()
+        running = True  # Resume the main processing loop
+    except Exception as e:
+        print(f"Failed to reconnect to Redis: {e}")
 
 def log_message(message):
     time_delay = random.randrange(0, 2000)
@@ -125,8 +165,6 @@ def http_transport(encoded_span):
 def process_message_loop():
     """Process messages from Redis with error handling and reconnection"""
     global pubsub, redis_client, running
-    
-    from py_zipkin.zipkin import zipkin_span, ZipkinAttrs, generate_random_64bit_string
     
     while running:
         try:
@@ -185,20 +223,24 @@ def process_message_loop():
             
             pubsub = None
             redis_client = None
-            time.sleep(5)  # Wait before reconnecting
+            time.sleep(5)
         
         except Exception as e:
             print(f"Unexpected error in message processing: {e}")
             time.sleep(1)
+
+def start_flask_server():
+    """Start the Flask server for configuration updates"""
+    app.run(host='0.0.0.0', port=8089, debug=False, use_reloader=False)
 
 if __name__ == '__main__':    
     # Fetch initial configuration
     fetch_config()
     print(f"Initial configuration: Redis {config['REDIS_HOST']}:{config['REDIS_PORT']}, channel {config['REDIS_CHANNEL']}")
     
-    # Start configuration refresh thread
-    refresh_thread = threading.Thread(target=config_refresher, daemon=True)
-    refresh_thread.start()
+    # Start the Flask server in a separate thread
+    flask_thread = threading.Thread(target=start_flask_server, daemon=True)
+    flask_thread.start()
     
     # Initialize Redis connection
     initialize_redis_connection()

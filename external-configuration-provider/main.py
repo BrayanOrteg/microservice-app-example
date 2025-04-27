@@ -3,9 +3,10 @@ import time
 import threading
 import json
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import psycopg2
 from datetime import datetime
+import requests
 
 import sys
 
@@ -32,7 +33,31 @@ DB_CONNECTION_STRING = os.environ.get(
     "postgresql://icesi-viajes_owner:ji6kwCcDPs5o@ep-delicate-scene-a43o2df1.us-east-1.aws.neon.tech/todo?sslmode=require"
 )
 
-def fetch_all_configs():
+# Mapping of config keys to services that use them
+config_service_map = {
+    "AUTH_API_PORT": ["auth-api"],
+    "JWT_SECRET": ["auth-api", "users-api", "todos-api"],
+    "USERS_API_ADDRESS": ["auth-api"],
+    "ZIPKIN_URL": ["auth-api", "users-api", "todos-api", "log-message-processor", "frontend"],
+    "USERS_API_PORT": ["users-api"],
+    "SERVER_PORT": ["users-api"],
+    "TODO_API_PORT": ["todos-api"],
+    "REDIS_HOST": ["todos-api", "log-message-processor"],
+    "REDIS_PORT": ["todos-api", "log-message-processor"],
+    "REDIS_CHANNEL": ["todos-api", "log-message-processor"],
+    "AUTH_API_ADDRESS": ["frontend"],
+    "TODOS_API_ADDRESS": ["frontend"]
+}
+
+# Service endpoints for config notification
+service_notification_endpoints = {
+    "auth-api": "http://auth-api:8000/config/update",
+    "users-api": "http://users-api:8083/config/update",
+    "todos-api": "http://todos-api:8082/config/update",
+    "log-message-processor": "http://log-message-processor:8089/config/update"
+}
+
+def fetch_all_configs(notify=True):
     """Fetch all configurations from the database"""
     try:
         conn = psycopg2.connect(DB_CONNECTION_STRING)
@@ -43,11 +68,18 @@ def fetch_all_configs():
         # Build new configuration dictionary
         new_config = {name: value for name, value in rows}
         
+        # Track which services need updates
+        services_to_notify = set()
+        
         # Check for changes
         changes = {}
         for key, value in new_config.items():
             if key not in config_cache or config_cache[key] != value:
                 changes[key] = value
+                # Add services that need to be notified about this change
+                if key in config_service_map:
+                    for service in config_service_map[key]:
+                        services_to_notify.add(service)
         
         # Update the cache if there are changes
         if changes:
@@ -56,6 +88,10 @@ def fetch_all_configs():
             now = datetime.now().isoformat()
             for key in changes:
                 last_updated[key] = now
+                
+            # Notify relevant services about configuration changes
+            if notify:
+                notify_services(services_to_notify, changes)
         else:
             print("No configuration changes detected")
         
@@ -65,13 +101,43 @@ def fetch_all_configs():
     except Exception as e:
         print(f"Failed to fetch configuration from database: {e}")
         return False
-
+    
 def config_refresh_task():
     """Background task to periodically refresh configurations"""
     while True:
         print("Refreshing configuration from database")
         fetch_all_configs()
         time.sleep(db_check_interval)
+
+def notify_services(services, changed_configs):
+    """Notify services about configuration changes"""
+    for service in services:
+        if service in service_notification_endpoints:
+            endpoint = service_notification_endpoints[service]
+            try:
+                # Get service-specific config
+                service_config = {}
+                # Filter only the keys relevant to this service
+                for key, value in changed_configs.items():
+                    if key in config_service_map and service in config_service_map[key]:
+                        service_config[key] = value
+                
+                if service_config:
+                    print(f"Notifying {service} about config changes: {list(service_config.keys())}")
+                    response = requests.post(
+                        endpoint,
+                        json={"config": service_config},
+                        timeout=10,  # Increase timeout to 10 seconds
+                    )
+                    print(f"Notification to {service} result: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to notify {service}: {e}")
+                print(f"Will retry notification to {service} in next refresh cycle")
+                # Store the failed notification for retry in the next cycle
+                # This is just a comment as implementing a proper retry queue would require more changes
+            except Exception as e:
+                print(f"Unexpected error notifying {service}: {e}")
+                print(f"Error details: {str(e)}")
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -128,7 +194,7 @@ def get_all_config():
 
 def initialize_app():
     # Initial configuration load
-    if fetch_all_configs():
+    if fetch_all_configs(notify=False):
         print(f"Initial configuration loaded: {len(config_cache)} items")
     else:
         print("Failed to load initial configuration")
@@ -137,5 +203,5 @@ def initialize_app():
     refresh_thread = threading.Thread(target=config_refresh_task, daemon=True)
     refresh_thread.start()
 
-# Call initialization when imported
+
 initialize_app()

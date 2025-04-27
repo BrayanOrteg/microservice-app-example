@@ -23,11 +23,6 @@ var (
 	jwtSecret = "myfancysecret"
 )
 
-// ConfigResponse represents the response from the config provider
-type ConfigResponse struct {
-	Config      map[string]string `json:"config"`
-}
-
 // FetchConfig fetches configuration from the config provider service
 func FetchConfig() (map[string]string, error) {
 	configProviderURL := os.Getenv("CONFIG_PROVIDER_URL")
@@ -51,37 +46,28 @@ func FetchConfig() (map[string]string, error) {
 	return configResp.Config, nil
 }
 
-// ConfigRefresher periodically fetches configuration
-func ConfigRefresher(configCh chan map[string]string) {
-	for {
-		config, err := FetchConfig()
-		if err != nil {
-			log.Printf("Failed to fetch configuration: %v", err)
-		} else {
-			log.Println("Fetched new configuration")
-			log.Printf("Config: %v", config)
-			configCh <- config
-		}
-		time.Sleep(60 * time.Second) // Check for updates every minute
-	}
+// ConfigResponse represents the response from the config provider
+type ConfigResponse struct {
+	Config      map[string]string `json:"config"`
+}
+
+// ConfigUpdateRequest represents the configuration update payload
+type ConfigUpdateRequest struct {
+	Config map[string]string `json:"config"`
 }
 
 func main() {
 	log.Println("Starting auth-api service")
 
-	// Set up config channel and start refresher
-	configCh := make(chan map[string]string)
-	go ConfigRefresher(configCh)
-	
 	// Get initial configuration
 	config, err := FetchConfig()
 	if err != nil {
 		log.Printf("Failed to fetch initial configuration: %v", err)
-		// Use default values
+		// default values
 		config = map[string]string{
-			"AUTH_API_PORT": "8000",
-			"USERS_API_ADDRESS": "http://users-api:8083",
-			"JWT_SECRET": "myfancysecret",
+			"AUTH_API_PORT": "",
+			"USERS_API_ADDRESS": "",
+			"JWT_SECRET": "",
 			"ZIPKIN_URL": "",
 		}
 	}
@@ -127,32 +113,46 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
+	// Add endpoint for configuration updates
+	e.POST("/config/update", func(c echo.Context) error {
+		req := new(ConfigUpdateRequest)
+		if err := c.Bind(req); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
+		}
+
+		log.Println("Received updated configuration")
+		
+		// Update userAPIAddress if it changed
+		if newUserAPIAddress, ok := req.Config["USERS_API_ADDRESS"]; ok && newUserAPIAddress != userAPIAddress {
+			userAPIAddress = newUserAPIAddress
+			userService.UserAPIAddress = newUserAPIAddress
+			log.Printf("Updated USERS_API_ADDRESS to %s", newUserAPIAddress)
+		}
+		
+		// Update JWT secret if it changed
+		if newJwtSecret, ok := req.Config["JWT_SECRET"]; ok && newJwtSecret != jwtSecret {
+			jwtSecret = newJwtSecret
+			log.Println("Updated JWT_SECRET")
+		}
+
+		// Update Zipkin URL if changed
+		if newZipkinURL, ok := req.Config["ZIPKIN_URL"]; ok && newZipkinURL != zipkinURL {
+			zipkinURL = newZipkinURL
+			log.Println("Updated ZIPKIN_URL")
+			// Note: You might need to reinitialize Zipkin tracing here
+		}
+
+		return c.JSON(http.StatusOK, map[string]string{
+			"status": "Configuration updated successfully",
+		})
+	})
+
 	// Route => handler
 	e.GET("/version", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Auth API, written in Go\n")
 	})
 
 	e.POST("/login", getLoginHandler(userService))
-	
-	// Handle config updates in a separate goroutine
-	go func() {
-		for newConfig := range configCh {
-			log.Println("Received updated configuration")
-			
-			// Update userAPIAddress if it changed
-			if newUserAPIAddress, ok := newConfig["USERS_API_ADDRESS"]; ok && newUserAPIAddress != userAPIAddress {
-				userAPIAddress = newUserAPIAddress
-				userService.UserAPIAddress = newUserAPIAddress
-				log.Printf("Updated USERS_API_ADDRESS to %s", newUserAPIAddress)
-			}
-			
-			// Update JWT secret if it changed
-			if newJwtSecret, ok := newConfig["JWT_SECRET"]; ok && newJwtSecret != jwtSecret {
-				jwtSecret = newJwtSecret
-				log.Println("Updated JWT_SECRET")
-			}
-		}
-	}()
 
 	// Start server
 	hostport := ":" + authAPIPort

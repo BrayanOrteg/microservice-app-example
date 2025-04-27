@@ -8,6 +8,7 @@ class RedisAmbassador {
         this.failureThreshold = redisOptions.failureThreshold || 5;
         this.resetTimeout = redisOptions.resetTimeout || 60000;
         this.maxRetries = redisOptions.maxRetries || 3;
+        this.connectionTimeout = redisOptions.connectionTimeout || 5000;
         this.redisOptions = redisOptions;
         this.metrics = {
             published: 0,
@@ -77,8 +78,8 @@ class RedisAmbassador {
             console.warn('RedisAmbassador: Redis client is not connected. Attempting to recreate client...');
             this._createRedisClient();
 
-            // Wait for 5 seconds for the client to connect
-            await new Promise(res => setTimeout(res, 5000));
+            // Wait for the configurable timeout for the client to connect
+            await new Promise(res => setTimeout(res, this.connectionTimeout));
 
             // Check if the client is still not connected after waiting and add to failed queue the message
             if (!this.redisClient.connected) {

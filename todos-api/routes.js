@@ -1,11 +1,34 @@
 'use strict';
+
 const TodoController = require('./todoController');
-module.exports = function (app, {tracer, redisAmbassador, logChannel}) {
-  const todoController = new TodoController({tracer, redisAmbassador, logChannel});
+
+// Store controller instance 
+let todoController = null;
+
+module.exports = function(app, deps) {
+  const { tracer, redisAmbassador, todoController: existingController } = deps;
+  
+  // Use the existing controller if provided, otherwise create a new one
+  if (existingController) {
+    todoController = existingController;
+  } else if (!todoController) {
+    todoController = new TodoController({
+      tracer, 
+      redisAmbassador
+    });
+  } else {
+    // Update controller with new dependencies when they change
+    todoController.updateDependencies({
+      tracer, 
+      redisAmbassador
+    });
+  }
+
+  // Define API routes
   app.route('/todos')
-    .get(function(req,resp) {return todoController.list(req,resp)})
-    .post(function(req,resp) {return todoController.create(req,resp)});
+    .get(todoController.list.bind(todoController))
+    .post(todoController.create.bind(todoController));
 
   app.route('/todos/:taskId')
-    .delete(function(req,resp) {return todoController.delete(req,resp)});
+    .delete(todoController.delete.bind(todoController));
 };

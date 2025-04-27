@@ -3,3 +3,4 @@ py_zipkin
 requests
 cython
 psycopg2-binary
+flask
