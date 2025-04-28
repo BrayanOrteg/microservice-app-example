@@ -14,7 +14,7 @@ from py_zipkin.zipkin import zipkin_span, ZipkinAttrs, generate_random_64bit_str
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 1)
 sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 1)
 
-print('Starting log-message-processor... from github')
+print('Starting log-message-processor... from')
 
 # Get configuration provider URL
 config_provider_url = os.environ.get('CONFIG_PROVIDER_URL', '')
