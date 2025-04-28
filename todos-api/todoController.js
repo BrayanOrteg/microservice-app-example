@@ -105,11 +105,13 @@ class TodoController {
             // Use the updated redisAmbassador
             if (this._redisAmbassador) {
                 this._redisAmbassador.publish(message)
+                    .then(() => {
+                        console.log("metrics", this._redisAmbassador.getMetrics());
+                    })
                     .catch(err => {
                         console.error('Ambassador failed to publish:', err);
                     });
-                
-                console.log("metrics", this._redisAmbassador.getMetrics());
+                 
             } else {
                 console.error('Redis Ambassador not available');
             }
