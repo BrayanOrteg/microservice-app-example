@@ -23,7 +23,7 @@ var (
 	jwtSecret = "myfancysecret"
 )
 
-// Update 2
+// Update
 // FetchConfig fetches configuration from the config provider service
 func FetchConfig() (map[string]string, error) {
 	configProviderURL := os.Getenv("CONFIG_PROVIDER_URL")

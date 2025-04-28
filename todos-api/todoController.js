@@ -111,8 +111,7 @@ class TodoController {
                     .catch(err => {
                         console.error('Ambassador failed to publish:', err);
                     });
-                
- 
+                 
             } else {
                 console.error('Redis Ambassador not available');
             }
