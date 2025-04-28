@@ -15,10 +15,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Build Docker image for Frontend
-        run: |
-          docker build -t frontend ./frontend
-
       - name: Add VM to known_hosts
         run: |
           mkdir -p ~/.ssh
