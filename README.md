@@ -137,4 +137,8 @@ All services get notifications from the provider except:
 ## Architecture Diagram
 ![Ingesoft drawio](./Ingesoft.drawio.png)
 
+## Ideal Architecture Diagram
+![Diagrama de infrastructura ideal drawio (1)](https://github.com/user-attachments/assets/525d303d-20bb-4bcc-b934-ab64255db237)
+
+
 
