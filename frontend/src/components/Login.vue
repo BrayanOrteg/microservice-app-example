@@ -7,7 +7,7 @@
                 <div class='row'>
                     <div class='col-md-3'></div>
                     <div class='col-md-6'>
-                        <h2>Please Login Updatedd</h2>
+                        <h2>Please Login UPDATEEE</h2>
                         <hr>
                     </div>
                 </div>

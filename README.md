@@ -58,6 +58,30 @@ At the root of the project, you will find the ansible and terraform folders, as 
 		* USERS_API_ADDRESS
 		* USERS_API_PORT
 		* ZIPKIN_URL
+	* Here is an example of de sql snipept:
+		> ```sql
+		> DROP SCHEMA public CASCADE;
+		> CREATE SCHEMA public;
+  		> 
+		> CREATE TABLE config_table (
+		> name VARCHAR(255) PRIMARY KEY,
+  		> value VARCHAR(255) NOT NULL
+  		> );
+  		>
+  		> INSERT INTO public.config_table (name, value) VALUES
+  		> ('AUTH_API_ADDRESS', 'http://127.0.0.1:8081'),
+		> ('AUTH_API_PORT', '8000'),
+		> ('FRONT_PORT', '8080')
+		> ('JWT_SECRET', 'PRFT'),
+  		> ('REDIS_CHANNEL', 'log_channel'),
+		> ('REDIS_HOST', 'redis'),
+		> ('REDIS_PORT', '6379'),
+		> ('TODOS_API_ADDRESS', 'http://127.0.0.1:8082')
+		> ('TODOS_API_PORT', '8082')
+  		> ('USERS_API_ADDRESS', 'http://users-api:8083'),
+		> ('USERS_API_PORT', '8083')
+  		> ('ZIPKIN_URL', 'http://zipkin:9411/api/v2/spans')
+		> ```
 	* Go to the global compose up to change the URLs of each container
 		* The variable is CONFIG_PROVIDER_URL
 	* If you need to change the logic of the connection the files are:
@@ -65,6 +89,7 @@ At the root of the project, you will find the ansible and terraform folders, as 
 		* frontend\config\fetch-config.js
 		* log-message-processor\main.py
 		* todos-api\server.js
+		* todos-api\todoController.js
 		* users-api\src\main\java\com\elgris\usersapi\configuration\DatabasePropertySourceInitializer.java
 
 ### Pipelines
@@ -85,7 +110,7 @@ GitHub Actions were configured so that each one monitors changes to its service 
 
 ## Development Branching Strategy
 
-For the development branching strategy, we chose gitflow. Since we are only two people and its simple structure of a main, dev, and feature branches fits the scope of the workshop.
+For the development branching strategy, we based on github flow. Since we are only two people and its simple structure of a main and feature branches were we include a dev in between to ensure everything works and is fine, fitting the scope of the workshop.
 
 ![Git Workflow: Feature Branches](https://wac-cdn.atlassian.com/dam/jcr:34c86360-8dea-4be4-92f7-6597d4d5bfae/02%20Feature%20branches.svg?cdnVersion=2663)
 
@@ -96,7 +121,7 @@ Since we are just a team of two, we decided to create a branch from Main called 
 ## Implemented Patterns
 
 The patterns we decided to implement are:
-1. **External Configuration Storage**: Each microservice offers an endpoint to receive configuration where the external-configuration-provider service is responsible for connecting to a PostgreSQL database and periodically retrieving all configuration variables, such as the URLs of other endpoints for requests. Whenever it detects a change in a service’s configuration, it notifies the corresponding service through its configuration endpoint.
+1. **External Configuration Storage**: Each microservice offers an endpoint to receive configuration where the external-configuration-provider service is responsible for connecting to a PostgreSQL database and periodically retrieving all configuration variables, such as the URLs of other endpoints for requests. Whenever it detects a change in a service’s configuration, it notifies the corresponding service through its configuration endpoint. Microservices can also request their configuration from the external-configuration-provider once during their startup.
 
 All services get notifications from the provider except:
 	* **frontend**: Since it is a client-side project, a configuration script called fetch-config is executed before the build process. This script sends a GET request to the provider and generates a .env file with the configuration variables, which index.js then reads.
